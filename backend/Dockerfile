@@ -1,16 +1,16 @@
-# Base Image
-FROM python:3.10-slim
+# Base Image - using full image to avoid missing dependencies in slim
+FROM python:3.10
 
 # Set working directory
 WORKDIR /app
 
 # Install system dependencies
 # ffmpeg: required for video processing
-# libgl1-mesa-glx, libglib2.0-0: required for opencv-python
+# libgl1, libglib2.0-0: required for opencv-python
 # git: required since some pip packages are installed from git
 RUN apt-get update && apt-get install -y \
     ffmpeg \
-    libgl1-mesa-glx \
+    libgl1 \
     libglib2.0-0 \
     git \
     && rm -rf /var/lib/apt/lists/*
@@ -20,7 +20,9 @@ COPY requirements.txt .
 
 # Install Python dependencies
 # Using --no-cache-dir to keep image size smaller
-RUN pip install --no-cache-dir -r requirements.txt
+# Upgrade pip first to avoid issues
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY . .
