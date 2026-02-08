@@ -5,6 +5,7 @@ import axios from "axios";
 import { Upload, X, Download, Loader2, ArrowLeft, Palette, Check } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
+import LoadingMessage from "../components/LoadingMessage";
 
 const API_URL = "http://localhost:8000";
 
@@ -89,31 +90,39 @@ export default function ImagePage() {
                         <div className="card p-6">
                             <h2 className="mb-4 text-sm font-medium text-white/70">1. Upload Image</h2>
 
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                className="hidden"
+                                accept="image/*"
+                                onChange={handleFileSelect}
+                            />
+
                             {!imageFile ? (
-                                <label className="upload-zone flex h-56 w-full cursor-pointer flex-col items-center justify-center">
+                                <label
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="upload-zone flex h-56 w-full cursor-pointer flex-col items-center justify-center"
+                                >
                                     <Upload className="mb-3 h-10 w-10 text-white/30" />
                                     <p className="text-sm text-white/50">
                                         <span className="text-white/70">Click to upload</span> or drag and drop
                                     </p>
                                     <p className="mt-1 text-xs text-white/30">PNG, JPG, WebP</p>
-                                    <input
-                                        ref={fileInputRef}
-                                        type="file"
-                                        className="hidden"
-                                        accept="image/*"
-                                        onChange={handleFileSelect}
-                                    />
                                 </label>
                             ) : (
-                                <div className="relative rounded-xl overflow-hidden bg-white/[0.02]">
+                                <div className="relative rounded-xl overflow-hidden bg-white/[0.02] group">
                                     <img
                                         src={imagePreview!}
                                         alt="Preview"
-                                        className="w-full max-h-56 object-contain"
+                                        className="w-full max-h-56 object-contain cursor-pointer transition-opacity hover:opacity-80"
+                                        onClick={() => fileInputRef.current?.click()}
                                     />
                                     <button
-                                        onClick={handleClear}
-                                        className="absolute top-3 right-3 p-2 rounded-full bg-black/60 text-white/70 hover:text-white hover:bg-black/80 transition-colors"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleClear();
+                                        }}
+                                        className="absolute top-3 right-3 p-2 rounded-full bg-black/60 text-white/70 hover:text-white hover:bg-black/80 transition-colors z-10"
                                     >
                                         <X size={16} />
                                     </button>
@@ -217,8 +226,7 @@ export default function ImagePage() {
 
                         {isProcessing ? (
                             <div className="flex flex-1 flex-col items-center justify-center text-center">
-                                <Loader2 className="mb-4 h-10 w-10 animate-spin text-white/50" />
-                                <p className="text-white/70">{processingStatus}</p>
+                                <LoadingMessage status={processingStatus || "Processing Image..."} />
                             </div>
                         ) : resultUrl ? (
                             <div className="flex flex-1 flex-col">
@@ -239,10 +247,28 @@ export default function ImagePage() {
                                     />
                                 </div>
                                 <div className="mt-6 flex justify-end">
-                                    <a href={resultUrl} download className="btn-primary inline-flex items-center gap-2">
+                                    <button
+                                        onClick={async () => {
+                                            if (!resultUrl) return;
+                                            try {
+                                                const response = await axios.get(resultUrl, { responseType: 'blob' });
+                                                const url = window.URL.createObjectURL(new Blob([response.data]));
+                                                const link = document.createElement('a');
+                                                link.href = url;
+                                                link.setAttribute('download', `removed_bg.${backgroundColor === 'transparent' ? 'png' : 'jpg'}`);
+                                                document.body.appendChild(link);
+                                                link.click();
+                                                link.parentNode?.removeChild(link);
+                                                window.URL.revokeObjectURL(url);
+                                            } catch (error) {
+                                                console.error("Download failed", error);
+                                            }
+                                        }}
+                                        className="btn-primary inline-flex items-center gap-2"
+                                    >
                                         <Download size={16} />
-                                        Download
-                                    </a>
+                                        Download .{backgroundColor === 'transparent' ? 'PNG' : 'JPG'}
+                                    </button>
                                 </div>
                             </div>
                         ) : (

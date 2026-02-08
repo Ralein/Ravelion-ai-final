@@ -2,57 +2,47 @@
 
 import { useState, useRef } from "react";
 import axios from "axios";
-import { Upload, X, Download, Loader2, ArrowLeft, Zap, Play } from "lucide-react";
+import { Upload, X, Download, Loader2, ArrowLeft, FileType, Check, Image as ImageIcon } from "lucide-react";
 import Link from "next/link";
+import clsx from "clsx";
 import LoadingMessage from "../../components/LoadingMessage";
 
 const API_URL = "http://localhost:8000";
 
-export default function FastMoPage() {
-    const [videoFile, setVideoFile] = useState<File | null>(null);
-    const [videoId, setVideoId] = useState<string | null>(null);
-    const [isUploading, setIsUploading] = useState(false);
+const FORMATS = [
+    { value: "jpg", label: "JPG", desc: "Best for photos" },
+    { value: "png", label: "PNG", desc: "Lossless, Transparency" },
+    { value: "webp", label: "WebP", desc: "Modern Web Format" },
+];
+
+export default function ImageConvertPage() {
+    const [imageFile, setImageFile] = useState<File | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [resultUrl, setResultUrl] = useState<string | null>(null);
-    const [speed, setSpeed] = useState(2);
+    const [format, setFormat] = useState("jpg");
     const [processingStatus, setProcessingStatus] = useState("");
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
-            const file = e.target.files[0];
-            setVideoFile(file);
-            setIsUploading(true);
-
-            const formData = new FormData();
-            formData.append("file", file);
-
-            try {
-                const res = await axios.post(`${API_URL}/upload-video`, formData);
-                setVideoId(res.data.video_id);
-                setResultUrl(null);
-            } catch (err) {
-                console.error("Upload failed", err);
-                alert("Upload failed");
-            } finally {
-                setIsUploading(false);
-            }
+            setImageFile(e.target.files[0]);
+            setResultUrl(null);
         }
     };
 
     const handleProcess = async () => {
-        if (!videoId) return;
+        if (!imageFile) return;
 
         setIsProcessing(true);
-        setProcessingStatus("Applying fast motion...");
+        setProcessingStatus(`Converting to ${format.toUpperCase()}...`);
 
         const formData = new FormData();
-        formData.append("video_id", videoId);
-        formData.append("speed", speed.toString());
+        formData.append("file", imageFile);
+        formData.append("format", format);
 
         try {
-            const res = await axios.post(`${API_URL}/fastmo`, formData);
-            setResultUrl(res.data.video_url);
+            const res = await axios.post(`${API_URL}/convert-image`, formData);
+            setResultUrl(res.data.image_url);
             setProcessingStatus("Complete!");
         } catch (err) {
             console.error("Processing failed", err);
@@ -73,8 +63,8 @@ export default function FastMoPage() {
                     </Link>
                     <div className="h-5 w-px bg-white/10" />
                     <h1 className="text-lg font-medium flex items-center gap-2">
-                        <Zap size={18} className="text-white/50" />
-                        Fast Motion
+                        <FileType size={18} className="text-white/50" />
+                        Image Format Convert
                     </h1>
                 </div>
             </header>
@@ -83,23 +73,22 @@ export default function FastMoPage() {
                 <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
                     <div className="space-y-6">
                         <div className="card p-6">
-                            <h2 className="mb-4 text-sm font-medium text-white/70">1. Upload Video</h2>
-
+                            <h2 className="mb-4 text-sm font-medium text-white/70">1. Upload Image</h2>
                             <input
                                 ref={fileInputRef}
                                 type="file"
                                 className="hidden"
-                                accept="video/*"
+                                accept="image/*"
                                 onChange={handleUpload}
                             />
-
-                            {!videoFile ? (
+                            {!imageFile ? (
                                 <label
                                     onClick={() => fileInputRef.current?.click()}
                                     className="upload-zone flex h-44 w-full cursor-pointer flex-col items-center justify-center"
                                 >
-                                    <Upload className="mb-3 h-8 w-8 text-white/30" />
+                                    <ImageIcon className="mb-3 h-8 w-8 text-white/30" />
                                     <p className="text-sm text-white/50"><span className="text-white/70">Click to upload</span></p>
+                                    <p className="text-xs text-white/30 mt-1">JPG, PNG, WEBP</p>
                                 </label>
                             ) : (
                                 <div
@@ -107,24 +96,19 @@ export default function FastMoPage() {
                                     onClick={() => fileInputRef.current?.click()}
                                 >
                                     <div className="flex items-center gap-3">
-                                        <div className="h-10 w-10 rounded-lg bg-white/10 flex items-center justify-center">
-                                            {isUploading ? (
-                                                <Loader2 className="h-5 w-5 animate-spin text-white/70" />
-                                            ) : (
-                                                <Play size={18} className="text-white/70" />
-                                            )}
+                                        <div className="h-12 w-12 rounded-lg bg-white/10 flex items-center justify-center overflow-hidden">
+                                            <img src={URL.createObjectURL(imageFile)} alt="Preview" className="h-full w-full object-cover" />
                                         </div>
                                         <div>
-                                            <p className="text-sm font-medium max-w-[200px] truncate">{videoFile.name}</p>
-                                            <p className="text-xs text-white/40">{(videoFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                                            <p className="text-sm font-medium max-w-[200px] truncate">{imageFile.name}</p>
+                                            <p className="text-xs text-white/40">{(imageFile.size / 1024 / 1024).toFixed(2)} MB</p>
                                         </div>
                                     </div>
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            setVideoFile(null);
-                                            setVideoId(null);
-                                            // Reset input
+                                            setImageFile(null);
+                                            setResultUrl(null);
                                             if (fileInputRef.current) fileInputRef.current.value = "";
                                         }}
                                         className="text-white/40 hover:text-white transition-colors p-2"
@@ -135,27 +119,28 @@ export default function FastMoPage() {
                             )}
                         </div>
 
-                        {videoId && (
+                        {imageFile && (
                             <div className="card p-6 animate-fade-in">
-                                <h2 className="mb-4 text-sm font-medium text-white/70">2. Select Speed</h2>
-                                <div className="space-y-4">
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-white/50">Speed</span>
-                                        <span className="font-medium">{speed}x</span>
-                                    </div>
-                                    <input
-                                        type="range"
-                                        min={1}
-                                        max={4}
-                                        step={0.25}
-                                        value={speed}
-                                        onChange={(e) => setSpeed(parseFloat(e.target.value))}
-                                        className="w-full"
-                                    />
-                                    <div className="flex justify-between text-xs text-white/30">
-                                        <span>1x (Normal)</span>
-                                        <span>4x (Super Fast)</span>
-                                    </div>
+                                <h2 className="mb-4 text-sm font-medium text-white/70">2. Select Format</h2>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {FORMATS.map((f) => (
+                                        <button
+                                            key={f.value}
+                                            onClick={() => setFormat(f.value)}
+                                            className={clsx(
+                                                "relative p-3 rounded-xl border-2 transition-all text-center",
+                                                format === f.value
+                                                    ? "border-white/30 bg-white/[0.05]"
+                                                    : "border-white/10 hover:border-white/20"
+                                            )}
+                                        >
+                                            <span className="text-sm font-bold">.{f.value}</span>
+                                            <p className="text-[10px] text-white/40 mt-0.5">{f.desc}</p>
+                                            {format === f.value && (
+                                                <Check className="absolute top-1 right-1 h-3 w-3 text-white" />
+                                            )}
+                                        </button>
+                                    ))}
                                 </div>
 
                                 <button
@@ -169,7 +154,7 @@ export default function FastMoPage() {
                                             {processingStatus}
                                         </span>
                                     ) : (
-                                        "Apply Fast Motion"
+                                        `Convert to ${format.toUpperCase()}`
                                     )}
                                 </button>
                             </div>
@@ -184,7 +169,9 @@ export default function FastMoPage() {
                             </div>
                         ) : resultUrl ? (
                             <div className="flex flex-1 flex-col">
-                                <video src={resultUrl} controls className="w-full rounded-xl border border-white/10" />
+                                <div className="relative flex-1 rounded-xl border border-white/10 bg-black/50 flex items-center justify-center overflow-hidden">
+                                    <img src={resultUrl} alt="Result" className="max-h-[400px] max-w-full object-contain" />
+                                </div>
                                 <div className="mt-6 flex justify-end">
                                     <button
                                         onClick={async () => {
@@ -194,7 +181,7 @@ export default function FastMoPage() {
                                                 const url = window.URL.createObjectURL(new Blob([response.data]));
                                                 const link = document.createElement('a');
                                                 link.href = url;
-                                                link.setAttribute('download', `fastmo_${videoFile?.name || 'video.mp4'}`);
+                                                link.setAttribute('download', `converted.${format}`);
                                                 document.body.appendChild(link);
                                                 link.click();
                                                 link.parentNode?.removeChild(link);
@@ -205,13 +192,13 @@ export default function FastMoPage() {
                                         }}
                                         className="btn-primary inline-flex items-center gap-2"
                                     >
-                                        <Download size={16} /> Download
+                                        <Download size={16} /> Download .{format}
                                     </button>
                                 </div>
                             </div>
                         ) : (
                             <div className="flex flex-1 flex-col items-center justify-center text-center">
-                                <Zap className="mb-4 h-12 w-12 text-white/15" />
+                                <FileType className="mb-4 h-12 w-12 text-white/15" />
                                 <p className="text-white/30">Result will appear here</p>
                             </div>
                         )}

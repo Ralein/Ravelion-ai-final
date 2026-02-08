@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import axios from "axios";
 import { Upload, X, Download, Loader2, ArrowLeft, Music, Play, VolumeX, Volume2 } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
+import LoadingMessage from "../../components/LoadingMessage";
 
 const API_URL = "http://localhost:8000";
 
@@ -16,6 +17,7 @@ export default function AudioPage() {
     const [resultUrl, setResultUrl] = useState<string | null>(null);
     const [mode, setMode] = useState<"extract" | "remove">("extract");
     const [processingStatus, setProcessingStatus] = useState("");
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -83,24 +85,51 @@ export default function AudioPage() {
                     <div className="space-y-6">
                         <div className="card p-6">
                             <h2 className="mb-4 text-sm font-medium text-white/70">1. Upload Video</h2>
+
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                className="hidden"
+                                accept="video/*"
+                                onChange={handleUpload}
+                            />
+
                             {!videoFile ? (
-                                <label className="upload-zone flex h-44 w-full cursor-pointer flex-col items-center justify-center">
+                                <label
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="upload-zone flex h-44 w-full cursor-pointer flex-col items-center justify-center"
+                                >
                                     <Upload className="mb-3 h-8 w-8 text-white/30" />
                                     <p className="text-sm text-white/50"><span className="text-white/70">Click to upload</span></p>
-                                    <input type="file" className="hidden" accept="video/*" onChange={handleUpload} />
                                 </label>
                             ) : (
-                                <div className="flex items-center justify-between rounded-xl bg-white/[0.03] border border-white/10 p-4">
+                                <div
+                                    className="flex items-center justify-between rounded-xl bg-white/[0.03] border border-white/10 p-4 cursor-pointer hover:bg-white/[0.05] transition-colors group"
+                                    onClick={() => fileInputRef.current?.click()}
+                                >
                                     <div className="flex items-center gap-3">
                                         <div className="h-10 w-10 rounded-lg bg-white/10 flex items-center justify-center">
-                                            <Play size={18} className="text-white/70" />
+                                            {isUploading ? (
+                                                <Loader2 className="h-5 w-5 animate-spin text-white/70" />
+                                            ) : (
+                                                <Play size={18} className="text-white/70" />
+                                            )}
                                         </div>
                                         <div>
                                             <p className="text-sm font-medium max-w-[200px] truncate">{videoFile.name}</p>
                                             <p className="text-xs text-white/40">{(videoFile.size / 1024 / 1024).toFixed(2)} MB</p>
                                         </div>
                                     </div>
-                                    <button onClick={() => { setVideoFile(null); setVideoId(null); }} className="text-white/40 hover:text-white transition-colors">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setVideoFile(null);
+                                            setVideoId(null);
+                                            // Reset input
+                                            if (fileInputRef.current) fileInputRef.current.value = "";
+                                        }}
+                                        className="text-white/40 hover:text-white transition-colors p-2"
+                                    >
                                         <X size={18} />
                                     </button>
                                 </div>
@@ -161,8 +190,7 @@ export default function AudioPage() {
                         <h2 className="mb-4 text-sm font-medium text-white/70">Result</h2>
                         {isProcessing ? (
                             <div className="flex flex-1 flex-col items-center justify-center text-center">
-                                <Loader2 className="mb-4 h-10 w-10 animate-spin text-white/50" />
-                                <p className="text-white/70">{processingStatus}</p>
+                                <LoadingMessage status={processingStatus} />
                             </div>
                         ) : resultUrl ? (
                             <div className="flex flex-1 flex-col">
@@ -172,9 +200,27 @@ export default function AudioPage() {
                                     <video src={resultUrl} controls className="w-full rounded-xl border border-white/10" />
                                 )}
                                 <div className="mt-6 flex justify-end">
-                                    <a href={resultUrl} download className="btn-primary inline-flex items-center gap-2">
+                                    <button
+                                        onClick={async () => {
+                                            if (!resultUrl) return;
+                                            try {
+                                                const response = await axios.get(resultUrl, { responseType: 'blob' });
+                                                const url = window.URL.createObjectURL(new Blob([response.data]));
+                                                const link = document.createElement('a');
+                                                link.href = url;
+                                                link.setAttribute('download', `audio_${videoFile?.name || 'result'}.${mode === 'extract' ? 'mp3' : 'mp4'}`);
+                                                document.body.appendChild(link);
+                                                link.click();
+                                                link.parentNode?.removeChild(link);
+                                                window.URL.revokeObjectURL(url);
+                                            } catch (error) {
+                                                console.error("Download failed", error);
+                                            }
+                                        }}
+                                        className="btn-primary inline-flex items-center gap-2"
+                                    >
                                         <Download size={16} /> Download
-                                    </a>
+                                    </button>
                                 </div>
                             </div>
                         ) : (

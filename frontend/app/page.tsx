@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Image, Video, Clock, Zap, Music, FileType, Minimize2, Sparkles, ArrowRight } from "lucide-react";
+import { Image, Video, Clock, Zap, Music, FileType, Minimize2, ArrowRight } from "lucide-react";
 import axios from "axios";
 import { useState } from "react";
 import ConfirmationModal from "./components/ConfirmationModal";
@@ -41,16 +41,28 @@ const features = [
     href: "/tools/audio",
   },
   {
-    title: "Format Convert",
+    title: "Video Convert",
     description: "MP4, MOV, WebM, AVI conversion",
     icon: FileType,
     href: "/tools/convert",
   },
   {
-    title: "Compress",
-    description: "Reduce file size, keep quality",
+    title: "Video Compress",
+    description: "Reduce video size, keep quality",
     icon: Minimize2,
     href: "/tools/compress",
+  },
+  {
+    title: "Image Compress",
+    description: "Shrink images efficiently",
+    icon: Minimize2,
+    href: "/tools/image-compress",
+  },
+  {
+    title: "Image Convert",
+    description: "Convert JPG, PNG, WebP",
+    icon: FileType,
+    href: "/tools/image-convert",
   },
 ];
 
@@ -86,10 +98,10 @@ export default function Home() {
       <header className="relative border-b border-white/[0.06] sticky top-0 z-50 bg-black/60 backdrop-blur-xl">
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-white flex items-center justify-center shadow-lg shadow-white/10">
-              <Sparkles className="h-5 w-5 text-black" />
+            <div className="h-10 w-10 rounded-xl bg-transparent flex items-center justify-center shadow-lg shadow-white/10 p-1">
+              <img src="/logo.png" alt="Ravelion Logo" className="h-full w-full object-contain" />
             </div>
-            <span className="text-xl font-semibold tracking-tight">Ravelion</span>
+            <span className="text-xl font-semibold tracking-tight">Ravelion AI</span>
           </div>
 
           <div className="flex items-center gap-4">
@@ -178,7 +190,7 @@ export default function Home() {
       <footer className="relative border-t border-white/[0.06] py-8">
         <div className="container mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-white/25">
           <span>Built with MobileSAM & FFmpeg</span>
-          <span>© 2026 Ravelion</span>
+          <span>© 2026 Made by Ralein Nova</span>
         </div>
       </footer>
 

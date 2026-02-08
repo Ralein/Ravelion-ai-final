@@ -278,10 +278,19 @@ async def remove_bg_pro(
         from PIL import Image
         
         pil_img = Image.open(io.BytesIO(contents))
+        
+        # Optimize: Resize if too large to speed up inference
+        max_dim = 1500
+        original_size = pil_img.size
+        if max(pil_img.size) > max_dim:
+            pil_img.thumbnail((max_dim, max_dim), Image.LANCZOS)
+        
         result = remove(pil_img)
         
-        # Apply background if not transparent
-        if background_color.lower() != "transparent":
+        # Determine output format and background
+        is_transparent = background_color.lower() == "transparent"
+        
+        if not is_transparent:
             bg_hex = background_color.lstrip("#")
             bg_rgb = tuple(int(bg_hex[i:i+2], 16) for i in (0, 2, 4))
             
@@ -291,7 +300,12 @@ async def remove_bg_pro(
             result = bg.convert("RGB")
             ext = "jpg"
         else:
+            # Enforce PNG for transparency
             ext = "png"
+        
+        # If we resized, we might want to resize back? 
+        # Actually, for web tools, 1500px is usually enough. 
+        # Resizing back up creates blur. Let's keep it optimized or offer an "HD" option later.
         
     except ImportError:
         # Fallback: simple GrabCut-like approach
@@ -599,6 +613,121 @@ async def compress_video(
         "status": "success",
         "video_url": f"http://localhost:8000/outputs/{output_filename}"
     }
+
+
+# ================== IMAGE TOOLS ==================
+
+@app.post("/compress-image")
+async def compress_image(
+    file: UploadFile = File(...),
+    quality: int = Form(50)  # 1-100
+):
+    """Compress image with specified quality."""
+    import io
+    from PIL import Image
+    import uuid
+    
+    try:
+        contents = await file.read()
+        img = Image.open(io.BytesIO(contents))
+        
+        # Determine format
+        if file.filename:
+            file_ext = file.filename.split('.')[-1].lower()
+        else:
+            file_ext = "jpg"
+            
+        output_format = 'JPEG'
+        if file_ext == 'png':
+            output_format = 'PNG'
+        elif file_ext == 'webp':
+            output_format = 'WEBP'
+            
+        # Convert to RGB if saving as JPEG (handling RGBA)
+        if output_format == 'JPEG' and img.mode in ('RGBA', 'LA'):
+            background = Image.new(img.mode[:-1], img.size, (255, 255, 255))
+            background.paste(img, img.split()[-1])
+            img = background
+            
+        # Output buffer
+        output_io = io.BytesIO()
+        
+        # Save compressed
+        # For PNG, quality is ignored by save(), uses compress_level/optimize
+        if output_format == 'PNG':
+             # If quality is low (< 80), try to quantize to reduce colors for file size
+             if quality < 80:
+                 img = img.quantize(colors=256, method=2)
+             img.save(output_io, format=output_format, optimize=True)
+        else:
+             img.save(output_io, format=output_format, quality=quality, optimize=True)
+        
+        output_filename = f"compressed_{uuid.uuid4()}.{file_ext}"
+        output_path = os.path.join(OUTPUT_DIR, output_filename)
+        
+        with open(output_path, "wb") as f:
+            f.write(output_io.getvalue())
+            
+        return {
+            "status": "success",
+            "image_url": f"http://localhost:8000/outputs/{output_filename}"
+        }
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Image compression failed: {str(e)}")
+
+@app.post("/convert-image")
+async def convert_image(
+    file: UploadFile = File(...),
+    format: str = Form(...) # png, jpg, webp, bmp, tiff
+):
+    """Convert image to specified format."""
+    import io
+    from PIL import Image
+    import uuid
+
+    try:
+        contents = await file.read()
+        img = Image.open(io.BytesIO(contents))
+        
+        target_format = format.lower()
+        if target_format == 'jpg':
+            target_format = 'jpeg'
+            
+        # Handle RGBA -> JPEG
+        if target_format == 'jpeg':
+            if img.mode == 'RGBA':
+                # Create white background
+                background = Image.new("RGB", img.size, (255, 255, 255))
+                # Paste utilizing alpha channel as mask
+                background.paste(img, mask=img.split()[3])
+                img = background
+            elif img.mode != 'RGB':
+                img = img.convert('RGB')
+            
+        output_io = io.BytesIO()
+        
+        # Map extension to PIL format
+        save_format = target_format.upper()
+        if save_format == 'JPG': save_format = 'JPEG'
+        
+        img.save(output_io, format=save_format)
+        
+        output_filename = f"converted_{uuid.uuid4()}.{target_format}"
+        output_path = os.path.join(OUTPUT_DIR, output_filename)
+        
+        with open(output_path, "wb") as f:
+            f.write(output_io.getvalue())
+            
+        return {
+            "status": "success",
+            "image_url": f"http://localhost:8000/outputs/{output_filename}"
+        }
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Image conversion failed: {str(e)}")
 
 
 if __name__ == "__main__":
