@@ -1,29 +1,47 @@
 # Ravelion AI
 
-Ravelion AI is a powerful, local-first media processing suite designed for high-quality video and image editing powered by AI.
+Ravelion AI is a powerful, local-first media processing suite designed for high-quality video and image editing powered by state-of-the-art AI. Built for creators, developers, and power users, Ravelion offers professional-grade tools like background removal, cinematic slow-motion, and smart compression—all within a sleek, modern, and privacy-focused interface.
 
-## Features
+## Why Ravelion AI?
 
-### Video Tools
-- **Video Background Removal**: 
-  - **Auto Mode**: Automatic background removal using BiRefNet (High Accuracy).
-  - **Precision Mode**: Interactive segmentation using MobileSAM + YOLOv7.
-  - Supports Apple Silicon (MPS) acceleration and CUDA.
-- **Slow Motion**: Cinematic slow-motion effects (0.25x - 0.5x speed) with smooth frame handling.
-- **Fast Motion**: Speed up videos smoothly (2x - 4x speed).
-- **Audio Tools**: Extract audio from video or remove audio tracks.
-- **Video Converter**: Convert between MP4, MOV, WebM, and AVI formats.
-- **Video Compressor**: Efficient video compression with adjustable quality (Low/Medium/High).
+Most media tools are either too complex (command-line FFmpeg) or too expensive (subscription-based cloud tools). Ravelion AI bridges this gap by providing a **Hybrid Architecture**: the speed of a local Python backend paired with the accessibility of a modern Next.js web interface.
 
-### Image Tools
-- **Image Background Removal**: AI-powered removal with transparent, color, or custom background options.
-- **Image Compressor**: Slider-based compression (10-100%) with smart PNG quantization.
-- **Image Converter**: Convert between JPG, PNG, and WebP formats.
+---
 
-### System
-- **Local Processing**: All data stays on your machine.
-- **System Cleanup**: One-click utility to clear temporary files and uploads.
-- **Modern UI**: Dark-themed, responsive interface with smooth animations.
+## 🚀 Core Features
+
+### 🎥 Professional Video Suite
+- **Advanced Background Removal**:
+    - **Auto Mode**: Uses **BiRefNet** for lightning-fast, high-accuracy background extraction.
+    - **Precision Mode**: Leverages **MobileSAM + YOLOv7** for interactive segmentation. Simply draw a box around your subject and let the AI do the heavy lifting.
+    - **Optimized for Hardware**: Supports Apple Silicon (MPS) and NVIDIA (CUDA) for blazing-fast inference.
+- **Cinematic Time Control**:
+    - **Slow Motion**: Create smooth, professional slow-motion effects (ranging from 0.25x to 1x).
+    - **Fast Motion**: Speed up long clips smoothly (up to 4x).
+- **Universal Converter**: Convert between all major formats (**MP4, MOV, WebM, AVI**) with high-fidelity output.
+- **Smart Compressor**: Reduce file sizes by up to 80% while preserving visual clarity. Select from Low, Medium, or High quality presets.
+
+### 🖼️ Intelligent Image Suite
+- **AI Background Removal**: Instantly remove backgrounds with high precision. Choose between transparent, solid colors, or custom backgrounds.
+- **Slider-Based Compression**: Gain granular control over image size vs. quality with a visual slider (10-100%). Includes smart **PNG quantization** for massive size reductions.
+- **Format Conversion**: Effortlessly switch between **JPG, PNG, and WebP** formats.
+
+### 🛠️ System & UX
+- **Privacy First**: All data is processed locally (or on your private cloud instance). No data mining, no tracking.
+- **Dynamic Loading**: Features a fun, rotating loading message system ("Oof, too many pixels boss...") to keep you engaged while the AI works.
+- **System Cleanup**: A dedicated utility to clear temporary files and uploads with one click, keeping your storage lean.
+- **Modern Aesthetics**: A premium, dark-mode focused UI with smooth transitions, responsive layouts, and intuitive controls.
+- **Direct Downloads**: No external redirects. Processed files are served directly as browser downloads.
+
+---
+
+## 🛠️ Technology Stack
+
+- **Frontend**: [Next.js 15](https://nextjs.org/) (App Router), [React](https://reactjs.org/), [Tailwind CSS](https://tailwindcss.com/)
+- **Backend**: [FastAPI](https://fastapi.tiangolo.com/) (Python 3.10+), [Uvicorn](https://www.uvicorn.org/)
+- **AI/ML**: [PyTorch](https://pytorch.org/), [MobileSAM](https://github.com/ChaoningZhang/MobileSAM), [YOLOv7](https://github.com/WongKinYiu/yolov7), [BiRefNet](https://github.com/ZhengPeng7/BiRefNet)
+- **Media Engine**: [FFmpeg](https://ffmpeg.org/) (The industry standard for video/audio processing)
+- **Deployment**: [Vercel](https://vercel.com/) (Frontend), [Render](https://render.com/) (Dockerized Backend)
 
 ## Prerequisites
 - Python 3.10+
