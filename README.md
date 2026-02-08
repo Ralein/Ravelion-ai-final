@@ -66,6 +66,23 @@ npm install
    ```
    Frontend runs on `http://localhost:3000`.
 
+## Deployment Architecture
+
+Ravelion AI is designed with a modern hybrid architecture:
+
+**User → Vercel (Next.js UI)**
+             ↓ API calls
+**Render (Docker + Python + AI Models)**
+
+### 1. Cloud Deployment
+- **Frontend**: Deploy the `frontend` folder to [Vercel](https://vercel.com).  
+  (Set `NEXT_PUBLIC_API_URL` environment variable to your Render backend URL).
+- **Backend**: Deploy the `backend` folder to [Render](https://render.com) using the included `Dockerfile`.  
+  (Select "Web Service" > "Docker" on Render).
+
+### 2. Local Usage
+Simply follow the "Running the App" instructions above to run everything on your own machine.
+
 ## Usage
 1. Open `http://localhost:3000`.
 2. Select a tool from the dashboard (e.g., Video BG Removal, Image Compress).
