@@ -92,4 +92,4 @@ Simply follow the "Running the App" instructions above to run everything on your
 6. Preview and Download the result directly.
 
 ---
-Made by **Ralein Nova**
+© 2026 **Ralein Nova**. All Rights Reserved. This software is proprietary and confidential. Unauthorized copying is prohibited. See [LICENSE](LICENSE) for details.

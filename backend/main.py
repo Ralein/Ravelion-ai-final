@@ -1,3 +1,5 @@
+# Copyright (c) 2026 Ralein Nova. All rights reserved.
+# Proprietary and confidential. Unauthorized copying is prohibited.
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles

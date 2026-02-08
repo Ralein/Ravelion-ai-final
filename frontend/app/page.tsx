@@ -1,7 +1,11 @@
+/**
+ * Copyright (c) 2026 Ralein Nova. All rights reserved.
+ * Proprietary and confidential. Unauthorized copying is prohibited.
+ */
 "use client";
 
 import Link from "next/link";
-import { Image, Video, Clock, Zap, Music, FileType, Minimize2, ArrowRight } from "lucide-react";
+import { Image, Video, Clock, Zap, Music, FileType, Minimize2, ArrowRight, Github } from "lucide-react";
 import axios from "axios";
 import { useState } from "react";
 import ConfirmationModal from "./components/ConfirmationModal";
@@ -112,6 +116,15 @@ export default function Home() {
               Clear System
             </button>
 
+            <button
+              onClick={() => window.open("https://github.com/Ralein/Ravelion-ai-final", "_blank")}
+              className="hidden md:inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium text-white/70 hover:text-white hover:bg-white/5 transition-all border border-white/10"
+            >
+              <Github size={14} />
+              GitHub
+            </button>
+
+
 
           </div>
         </div>
@@ -190,7 +203,7 @@ export default function Home() {
       <footer className="relative border-t border-white/[0.06] py-8">
         <div className="container mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-white/25">
           <span>Built with MobileSAM & FFmpeg</span>
-          <span>© 2026 Made by Ralein Nova</span>
+          <span>© 2026 Ralein Nova. All Rights Reserved.</span>
         </div>
       </footer>
 

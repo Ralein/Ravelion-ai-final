@@ -9,6 +9,8 @@ export const metadata: Metadata = {
   description: "Remove video backgrounds instantly with AI.",
 };
 
+import CopyProtection from "./components/CopyProtection";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -16,7 +18,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className={`${inter.className} min-h-screen bg-neutral-950 text-white selection:bg-purple-500 selection:text-white`}>
+      <body className={`${inter.className} min-h-screen bg-neutral-950 text-white`}>
+        <CopyProtection />
         {children}
       </body>
     </html>

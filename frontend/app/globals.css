@@ -20,6 +20,13 @@ body {
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* Copy Protection */
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -webkit-user-drag: none;
 }
 
 /* Custom scrollbar */
@@ -48,9 +55,10 @@ body {
 }
 
 /* Selection */
+/* Selection disabled via body user-select */
 ::selection {
-  background: rgba(255, 255, 255, 0.2);
-  color: #ffffff;
+  background: transparent;
+  color: inherit;
 }
 
 /* Animations */
