@@ -46,6 +46,24 @@ app.mount("/frames", StaticFiles(directory=FRAMES_DIR), name="frames")
 def read_root():
     return {"message": "Ravelion AI Backend is running"}
 
+@app.post("/cleanup")
+async def cleanup_system():
+    """
+    Clear all temporary directories and reset system state.
+    """
+    try:
+        # Directories to clear
+        dirs_to_clear = [UPLOAD_DIR, FRAMES_DIR, TEMP_DIR, OUTPUT_DIR]
+        
+        for d in dirs_to_clear:
+            if os.path.exists(d):
+                shutil.rmtree(d)
+                os.makedirs(d, exist_ok=True)
+                
+        return {"status": "success", "message": "System cleanup complete"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Cleanup failed: {str(e)}")
+
 @app.post("/upload-video")
 async def upload_video(file: UploadFile = File(...)):
     video_id = str(uuid.uuid4())
@@ -131,9 +149,18 @@ async def segment_video(
         # Get actual filename from result path (may have changed extension)
         actual_filename = os.path.basename(result_path)
         
-        # Cleanup temp
         if os.path.exists(task_temp_dir):
             shutil.rmtree(task_temp_dir)
+            
+        # Cleanup uploaded video and frames if needed
+        # Since the user requested "no need to save temp or upload", we delete them now.
+        if os.path.exists(video_path):
+            os.remove(video_path)
+            
+        # Also clean up the first frame image if it exists
+        frame_path = os.path.join(FRAMES_DIR, f"{video_id}.jpg")
+        if os.path.exists(frame_path):
+            os.remove(frame_path)
             
         return {
             "status": "success",
@@ -201,6 +228,14 @@ async def auto_remove(
         
         if os.path.exists(task_temp_dir):
             shutil.rmtree(task_temp_dir)
+            
+        # Cleanup uploaded video and frames if needed
+        if os.path.exists(video_path):
+            os.remove(video_path)
+
+        frame_path = os.path.join(FRAMES_DIR, f"{video_id}.jpg")
+        if os.path.exists(frame_path):
+            os.remove(frame_path)
             
         return {
             "status": "success",

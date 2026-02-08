@@ -191,6 +191,23 @@ export default function EditorPage() {
                     </div>
                     <div className="flex gap-2">
                         <button
+                            onClick={async () => {
+                                if (confirm("Are you sure you want to clear all system files? This will delete all uploads and current progress.")) {
+                                    try {
+                                        await axios.post(`${API_URL}/cleanup`);
+                                        alert("System cleared successfully!");
+                                        window.location.reload();
+                                    } catch (err) {
+                                        console.error("Cleanup failed", err);
+                                        alert("Cleanup failed");
+                                    }
+                                }
+                            }}
+                            className="rounded-lg px-4 py-2 text-sm font-medium text-red-400 hover:text-red-300 hover:bg-white/5 transition-all border border-red-500/20"
+                        >
+                            Clear System
+                        </button>
+                        <button
                             onClick={() => setMode("segment")}
                             className={clsx(
                                 "rounded-lg px-4 py-2 text-sm font-medium transition-all",

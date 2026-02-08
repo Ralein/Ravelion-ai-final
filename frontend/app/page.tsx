@@ -2,6 +2,9 @@
 
 import Link from "next/link";
 import { Image, Video, Clock, Zap, Music, FileType, Minimize2, Sparkles, ArrowRight, Github } from "lucide-react";
+import axios from "axios";
+
+const API_URL = "http://localhost:8000";
 
 const features = [
   {
@@ -49,6 +52,18 @@ const features = [
 ];
 
 export default function Home() {
+  const handleCleanup = async () => {
+    if (confirm("Are you sure you want to clear all system files? This will delete all uploads and current progress.")) {
+      try {
+        await axios.post(`${API_URL}/cleanup`);
+        alert("System cleared successfully!");
+      } catch (err) {
+        console.error("Cleanup failed", err);
+        alert("Cleanup failed or backend is offline.");
+      }
+    }
+  };
+
   return (
     <main className="min-h-screen bg-black text-white">
       {/* Subtle grid background */}
@@ -66,14 +81,24 @@ export default function Home() {
             </div>
             <span className="text-xl font-semibold tracking-tight">Ravelion</span>
           </div>
-          <a
-            href="https://github.com/Ralein/Ravelion"
-            target="_blank"
-            className="flex items-center gap-2 text-sm text-white/50 hover:text-white transition-colors"
-          >
-            <Github size={18} />
-            <span className="hidden sm:inline">GitHub</span>
-          </a>
+
+          <div className="flex items-center gap-4">
+            <button
+              onClick={handleCleanup}
+              className="hidden md:inline-flex items-center rounded-lg px-3 py-1.5 text-xs font-medium text-red-400 hover:text-red-300 hover:bg-white/5 transition-all border border-red-500/20"
+            >
+              Clear System
+            </button>
+
+            <a
+              href="https://github.com/Ralein/Ravelion"
+              target="_blank"
+              className="flex items-center gap-2 text-sm text-white/50 hover:text-white transition-colors"
+            >
+              <Github size={18} />
+              <span className="hidden sm:inline">GitHub</span>
+            </a>
+          </div>
         </div>
       </header>
 
