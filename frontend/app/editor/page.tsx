@@ -97,8 +97,21 @@ export default function EditorPage() {
         formData.append("background_color", backgroundColor);
 
         if (mode === "segment") {
+            // Calculate scaling factor between displayed image and original video frame
+            const img = imgRef.current;
+            if (!img) return; // Should be handled by top check but safe to add
+
+            // xmin, ymin, etc are already in original image coordinates because
+            // range inputs max is set to imgDims.w/h which are original dims.
+            // Let's verify:
+            // <input type="range" max={imgDims.w} ... />
+            // So xmin is in 0..original_width range.
+
             const bbox = [xmin, ymin, xmax, ymax];
-            formData.append("bbox", JSON.stringify(bbox));
+
+            // Ensure coordinates are integers
+            const bboxInt = bbox.map(coord => Math.round(coord));
+            formData.append("bbox", JSON.stringify(bboxInt));
         }
 
         const statusUpdates = [
@@ -162,6 +175,12 @@ export default function EditorPage() {
         canvas.height = containerWidth * ratio;
 
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        // Canvas size is set to container width
+        // Canvas height is set based on aspect ratio
+
+        // img.width/height are original dimensions
+        // canvas.width/height are display dimensions
 
         const scaleX = canvas.width / img.width;
         const scaleY = canvas.height / img.height;

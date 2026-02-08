@@ -5,7 +5,7 @@ import torch
 from mobile_sam import SamPredictor, sam_model_registry
 from PIL import Image
 
-from .utils import video_to_images, images_to_video, images_to_video_transparent, download_mobile_sam_weight
+from .utils import video_to_images, images_to_video, images_to_video_transparent, download_mobile_sam_weight, autorotate_video
 
 
 def segment_video_logic(
@@ -40,7 +40,12 @@ def segment_video_logic(
         output_video_path = output_video_path.rsplit('.', 1)[0] + '.webm'
 
     # 1. Video to Images
-    fps, count = video_to_images(video_path, frames_dir, frame_start, frame_end)
+    # 1. Video to Images
+    # Ensure video is rotated correctly (cv2 ignores metadata, so we physically rotate if needed)
+    processing_video_path = autorotate_video(video_path)
+    print(f"Processing video: {processing_video_path}")
+    
+    fps, count = video_to_images(processing_video_path, frames_dir, frame_start, frame_end)
     print(f"Extracted {count} frames at {fps} FPS")
     
     # 2. Setup MobileSAM
@@ -129,5 +134,11 @@ def segment_video_logic(
         images_to_video(processed_dir, output_video_path, fps=int(fps))
     
     print(f"Done! Output saved to {output_video_path}")
+    print(f"Done! Output saved to {output_video_path}")
+    
+    # Cleanup rotated video if it was created
+    if processing_video_path != video_path and os.path.exists(processing_video_path):
+        os.remove(processing_video_path)
+        
     return output_video_path
 

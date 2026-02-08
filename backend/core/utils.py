@@ -5,19 +5,73 @@ import wget
 import numpy as np
 import subprocess
 
+def autorotate_video(video_path):
+    """
+    Check for rotation metadata and create a temporary rotated copy if needed.
+    Returns path to rotated video (or original if no rotation needed).
+    """
+    try:
+        # Check rotation with ffprobe
+        cmd = [
+            'ffprobe', 
+            '-v', 'error', 
+            '-select_streams', 'v:0', 
+            '-show_entries', 'stream_tags=rotate', 
+            '-of', 'default=nw=1:nk=1', 
+            video_path
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        rotation = result.stdout.strip()
+        
+        if rotation and rotation != "0":
+            # Needs rotation
+            directory = os.path.dirname(video_path)
+            filename = os.path.basename(video_path)
+            rotated_path = os.path.join(directory, f"rotated_{filename}")
+            
+            # Use ffmpeg to re-encode with rotation applied
+            # -map_metadata 0 copies metadata, but we want to reset rotation tag
+            # actually ffmpeg auto-rotates by default when re-encoding
+            subprocess.run([
+                'ffmpeg', '-y', 
+                '-i', video_path, 
+                '-c:a', 'copy', 
+                rotated_path
+            ], check=True, capture_output=True)
+            
+            return rotated_path
+    except Exception as e:
+        print(f"Autorotate check failed: {e}")
+    
+    return video_path
+
 def extract_first_frame(video_path, output_image_path):
     """
     Extract the first frame from a video file and save it to disk.
+    Handles rotation metadata.
     """
-    cap = cv2.VideoCapture(video_path)
-    if not cap.isOpened():
-        raise ValueError(f"Error: Unable to open video file: {video_path}")
-    ret, frame = cap.read()
-    cap.release()
-    if not ret:
-        raise ValueError("Error: Unable to read the first frame from the video.")
-    cv2.imwrite(output_image_path, frame)
-    return output_image_path
+    # Use ffmpeg to extract first frame - it handles rotation automatically
+    try:
+        subprocess.run([
+            'ffmpeg', '-y',
+            '-i', video_path,
+            '-vframes', '1',
+            '-q:v', '2',
+            output_image_path
+        ], check=True, capture_output=True)
+        return output_image_path
+    except subprocess.CalledProcessError:
+        # Fallback to cv2 if ffmpeg fails (though cv2 might ignore rotation)
+        print("FFmpeg frame extraction failed, falling back to cv2")
+        cap = cv2.VideoCapture(video_path)
+        if not cap.isOpened():
+            raise ValueError(f"Error: Unable to open video file: {video_path}")
+        ret, frame = cap.read()
+        cap.release()
+        if not ret:
+            raise ValueError("Error: Unable to read the first frame from the video.")
+        cv2.imwrite(output_image_path, frame)
+        return output_image_path
 
 def video_to_images(video_path, output_dir, image_start=0, image_end=0):
     """
@@ -53,35 +107,57 @@ def video_to_images(video_path, output_dir, image_start=0, image_end=0):
 
 def images_to_video(images_dir, output_video_path, fps=30):
     """
-    Convert a sequence of images to video.
+    Convert a sequence of images to video using FFmpeg for H.264 encoding.
     """
     filenames = sorted([f for f in os.listdir(images_dir) if f.endswith(".png")])
     if not filenames:
         raise ValueError("No images found in directory")
 
-    # Read first image to get properties
-    first_img_path = os.path.join(images_dir, filenames[0])
-    img = cv2.imread(first_img_path)
-    if img is None:
-        raise ValueError(f"Could not read image {first_img_path}")
+    # Use FFmpeg to create H.264 MP4
+    # Pattern for input files
+    first_file = filenames[0]
+    # Extract pattern like frame_%04d.png
+    prefix = first_file.rsplit('_', 1)[0]
+    digits = len(first_file.rsplit('_', 1)[1].split('.')[0])
+    pattern = f"{prefix}_%0{digits}d.png"
+    
+    cmd = [
+        'ffmpeg', '-y',
+        '-framerate', str(fps),
+        '-i', os.path.join(images_dir, pattern),
+        '-c:v', 'libx264',
+        '-pix_fmt', 'yuv420p', # Important for browser compatibility
+        '-preset', 'fast',
+        '-crf', '23', # Good balance of quality/size
+        output_video_path
+    ]
+    
+    try:
+        subprocess.run(cmd, check=True, capture_output=True)
+    except subprocess.CalledProcessError as e:
+        print(f"FFmpeg error: {e.stderr.decode()}")
+        # Fallback to OpenCV if FFmpeg fails (better than nothing)
+        print("Falling back to OpenCV (mp4v)...")
         
-    height, width, layers = img.shape
-    size = (width, height)
+        # Read first image to get properties
+        first_img_path = os.path.join(images_dir, filenames[0])
+        img = cv2.imread(first_img_path)
+        if img is None:
+            raise ValueError(f"Could not read image {first_img_path}")
+            
+        height, width, layers = img.shape
+        size = (width, height)
 
-    # MJPG matches original. mp4v often better for compatibility but let's stick to simple.
-    # On mac, maybe 'avc1' or 'mp4v' is better for .mp4?
-    # Original used MJPG and .mp4 output. cv2 usually handles it.
-    fourcc = cv2.VideoWriter_fourcc(*"mp4v") 
-    out = cv2.VideoWriter(output_video_path, fourcc, fps, size)
+        fourcc = cv2.VideoWriter_fourcc(*"mp4v") 
+        out = cv2.VideoWriter(output_video_path, fourcc, fps, size)
 
-    for filename in filenames:
-        img_path = os.path.join(images_dir, filename)
-        img = cv2.imread(img_path)
-        # img is BGR. out.write expects BGR. 
-        # Original had a weird conversion here. I removed it.
-        out.write(img)
+        for filename in filenames:
+            img_path = os.path.join(images_dir, filename)
+            img = cv2.imread(img_path)
+            out.write(img)
 
-    out.release()
+        out.release()
+        
     return output_video_path
 
 def images_to_video_transparent(images_dir, output_video_path, fps=30):
