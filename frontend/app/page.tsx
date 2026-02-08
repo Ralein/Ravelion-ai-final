@@ -1,8 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { Image, Video, Clock, Zap, Music, FileType, Minimize2, Sparkles, ArrowRight, Github } from "lucide-react";
+import { Image, Video, Clock, Zap, Music, FileType, Minimize2, Sparkles, ArrowRight } from "lucide-react";
 import axios from "axios";
+import { useState } from "react";
+import ConfirmationModal from "./components/ConfirmationModal";
+import SuccessModal from "./components/SuccessModal";
 
 const API_URL = "http://localhost:8000";
 
@@ -52,15 +55,22 @@ const features = [
 ];
 
 export default function Home() {
-  const handleCleanup = async () => {
-    if (confirm("Are you sure you want to clear all system files? This will delete all uploads and current progress.")) {
-      try {
-        await axios.post(`${API_URL}/cleanup`);
-        alert("System cleared successfully!");
-      } catch (err) {
-        console.error("Cleanup failed", err);
-        alert("Cleanup failed or backend is offline.");
-      }
+  const [showCleanupModal, setShowCleanupModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+  const handleCleanup = () => {
+    setShowCleanupModal(true);
+  };
+
+  const confirmCleanup = async () => {
+    try {
+      await axios.post(`${API_URL}/cleanup`);
+      setShowCleanupModal(false);
+      setShowSuccessModal(true);
+    } catch (err) {
+      console.error("Cleanup failed", err);
+      alert("Cleanup failed or backend is offline.");
+      setShowCleanupModal(false);
     }
   };
 
@@ -90,14 +100,7 @@ export default function Home() {
               Clear System
             </button>
 
-            <a
-              href="https://github.com/Ralein/Ravelion"
-              target="_blank"
-              className="flex items-center gap-2 text-sm text-white/50 hover:text-white transition-colors"
-            >
-              <Github size={18} />
-              <span className="hidden sm:inline">GitHub</span>
-            </a>
+
           </div>
         </div>
       </header>
@@ -105,10 +108,7 @@ export default function Home() {
       {/* Hero Section */}
       <section className="relative container mx-auto px-6 pt-24 pb-16 text-center">
         <div className="animate-fade-in">
-          <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-white/70">
-            <span className="h-2 w-2 rounded-full bg-white animate-pulse-glow"></span>
-            Open Source & Free
-          </div>
+
 
           <h1 className="mb-6 text-5xl md:text-7xl font-bold tracking-tight leading-[1.1]">
             Media Editing
@@ -178,9 +178,27 @@ export default function Home() {
       <footer className="relative border-t border-white/[0.06] py-8">
         <div className="container mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-white/25">
           <span>Built with MobileSAM & FFmpeg</span>
-          <span>© 2024 Ravelion</span>
+          <span>© 2026 Ravelion</span>
         </div>
       </footer>
+
+      <ConfirmationModal
+        isOpen={showCleanupModal}
+        onClose={() => setShowCleanupModal(false)}
+        onConfirm={confirmCleanup}
+        title="Clear System?"
+        message="Are you sure you want to clear all system files? This will delete all uploads and current progress. This action cannot be undone."
+        confirmText="Clear System"
+        isDestructive={true}
+      />
+
+      <SuccessModal
+        isOpen={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        title="System Cleared"
+        message="All temporary files and uploads have been successfully removed."
+        buttonText="Great!"
+      />
     </main>
   );
 }

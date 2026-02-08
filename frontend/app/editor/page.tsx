@@ -3,8 +3,10 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import axios from "axios";
 import Link from "next/link";
-import { Upload, X, Check, Loader2, Play, Palette, ArrowLeft, Video } from "lucide-react";
+import { Upload, X, Check, Loader2, Play, Palette, ArrowLeft, Video, AlertCircle } from "lucide-react";
 import clsx from "clsx";
+import SuccessModal from "../components/SuccessModal";
+import ConfirmationModal from "../components/ConfirmationModal";
 
 const API_URL = "http://localhost:8000";
 
@@ -39,6 +41,17 @@ export default function EditorPage() {
     const [xmax, setXmax] = useState(100);
     const [ymax, setYmax] = useState(100);
 
+    // Modal States
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [successMessage, setSuccessMessage] = useState("");
+    const [successTitle, setSuccessTitle] = useState("Success");
+
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [confirmMessage, setConfirmMessage] = useState("");
+    const [confirmTitle, setConfirmTitle] = useState("Confirm Action");
+    const [confirmCallback, setConfirmCallback] = useState<() => void>(() => { });
+    const [isConfirmDestructive, setIsConfirmDestructive] = useState(false);
+
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const imgRef = useRef<HTMLImageElement | null>(null);
 
@@ -56,6 +69,9 @@ export default function EditorPage() {
                 setVideoId(res.data.video_id);
                 setFrameUrl(res.data.frame_url);
                 setResultUrl(null);
+                setSuccessTitle("Upload Complete");
+                setSuccessMessage("Video uploaded successfully. You can now adjust the settings.");
+                setShowSuccessModal(true);
             } catch (err) {
                 console.error("Upload failed", err);
                 alert("Upload failed");
@@ -105,6 +121,9 @@ export default function EditorPage() {
             setResultUrl(res.data.video_url);
             setProcessingStatus("Complete!");
             setProcessingStep(5);
+            setSuccessTitle("Segmentation Complete");
+            setSuccessMessage("Video background has been successfully removed.");
+            setShowSuccessModal(true);
         } catch (err) {
             console.error("Segmentation failed", err);
             alert("Segmentation failed, check console.");
@@ -191,17 +210,24 @@ export default function EditorPage() {
                     </div>
                     <div className="flex gap-2">
                         <button
-                            onClick={async () => {
-                                if (confirm("Are you sure you want to clear all system files? This will delete all uploads and current progress.")) {
+                            onClick={() => {
+                                setConfirmTitle("Clear System?");
+                                setConfirmMessage("Are you sure you want to clear all system files? This will delete all uploads and current progress.");
+                                setIsConfirmDestructive(true);
+                                setConfirmCallback(() => async () => {
                                     try {
                                         await axios.post(`${API_URL}/cleanup`);
-                                        alert("System cleared successfully!");
-                                        window.location.reload();
+                                        setShowConfirmModal(false);
+                                        setSuccessTitle("System Cleared");
+                                        setSuccessMessage("System files have been successfully cleared.");
+                                        setShowSuccessModal(true);
+                                        // Reload will happen after closing success modal
                                     } catch (err) {
                                         console.error("Cleanup failed", err);
                                         alert("Cleanup failed");
                                     }
-                                }
+                                });
+                                setShowConfirmModal(true);
                             }}
                             className="rounded-lg px-4 py-2 text-sm font-medium text-red-400 hover:text-red-300 hover:bg-white/5 transition-all border border-red-500/20"
                         >
@@ -423,6 +449,28 @@ export default function EditorPage() {
                     </div>
                 </div>
             </main>
-        </div>
+
+            <SuccessModal
+                isOpen={showSuccessModal}
+                onClose={() => {
+                    setShowSuccessModal(false);
+                    if (successTitle === "System Cleared") {
+                        window.location.reload();
+                    }
+                }}
+                title={successTitle}
+                message={successMessage}
+            />
+
+            <ConfirmationModal
+                isOpen={showConfirmModal}
+                onClose={() => setShowConfirmModal(false)}
+                onConfirm={confirmCallback}
+                title={confirmTitle}
+                message={confirmMessage}
+                isDestructive={isConfirmDestructive}
+                confirmText={isConfirmDestructive ? "Clear Everything" : "Confirm"}
+            />
+        </div >
     );
 }
