@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  # Backend: FastAPI + Python + AI Models
+  # Deploys to: Render / Railway
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount source code for live reload in dev
+      - ./backend:/app
+      # Exclude heavier dirs from mounting if needed, or mount specific output dirs
+      - /app/uploads
+      - /app/outputs
+      - /app/frames
+      - /app/temp_work
+    environment:
+      # Ensure python outputs are sent straight to terminal
+      - PYTHONUNBUFFERED=1
+
+  # Frontend: Next.js + React
+  # Deploys to: Vercel (Git Push)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      # Point to backend service name in docker network
+      # Note: Browser runs on host, so "localhost" is usually correct for client-side calls
+      # but if doing SSR (server-side rendering) fetching from backend, might need "http://backend:8000"
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    depends_on:
+      - backend
