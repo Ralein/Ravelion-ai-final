@@ -49,7 +49,7 @@ export default function WakeUpModal() {
                     </div>
 
                     <div className="space-y-2">
-                        <h3 className="text-xl font-semibold text-white">Ravelion is Asleep</h3>
+                        <h3 className="text-xl font-semibold text-white">Upload failed, Cleanup failed or backend is offline.</h3>
                         <p className="text-neutral-400">
                             The backend is currently waking up from inactivity. This may take about 5 minutes.
                             Please wait until it wakes up.
