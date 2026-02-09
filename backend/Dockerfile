@@ -3,16 +3,22 @@ FROM python:3.10-slim as builder
 
 WORKDIR /app
 
-# Install build dependencies
+# Install build and runtime dependencies needed for model download (OpenCV needs libgl1/glib)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     git \
+    libgl1 \
+    libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
 # Upgrade pip and install wheels
 COPY requirements.txt .
 RUN pip install --upgrade pip && \
     pip install --user --no-cache-dir -r requirements.txt
+
+# Make sure scripts installed by pip are in PATH for the builder stage
+ENV PATH=/root/.local/bin:$PATH
+ENV PYTHONPATH=/root/.local/lib/python3.10/site-packages:$PYTHONPATH
 
 # Pre-download AI models
 COPY download_models.py .
