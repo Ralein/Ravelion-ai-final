@@ -8,6 +8,43 @@ from PIL import Image
 from .utils import video_to_images, images_to_video, images_to_video_transparent, download_mobile_sam_weight, autorotate_video
 
 
+
+# Global cache for the predictor
+_CACHED_PREDICTOR = None
+_CACHED_DEVICE = None
+
+def get_sam_predictor(mobile_sam_weights):
+    global _CACHED_PREDICTOR, _CACHED_DEVICE
+    
+    # Check if we have a valid cached predictor
+    if _CACHED_PREDICTOR is not None:
+        print("Using cached MobileSAM model")
+        return _CACHED_PREDICTOR, _CACHED_DEVICE
+
+    print("Loading MobileSAM model...")
+    download_mobile_sam_weight(mobile_sam_weights)
+    
+    device = "cpu"
+    if torch.cuda.is_available():
+        device = "cuda"
+    elif torch.backends.mps.is_available():
+        device = "mps"
+    
+    print(f"Using device: {device}")
+
+    # Load SAM
+    sam = sam_model_registry["vit_t"](checkpoint=mobile_sam_weights)
+    sam.to(device=device)
+    sam.eval()
+    predictor = SamPredictor(sam)
+    
+    # Cache it
+    _CACHED_PREDICTOR = predictor
+    _CACHED_DEVICE = device
+    
+    return predictor, device
+
+
 def segment_video_logic(
     video_path,
     bbox_list,  # passed as list [xmin, ymin, xmax, ymax]
@@ -40,7 +77,6 @@ def segment_video_logic(
         output_video_path = output_video_path.rsplit('.', 1)[0] + '.webm'
 
     # 1. Video to Images
-    # 1. Video to Images
     # Ensure video is rotated correctly (cv2 ignores metadata, so we physically rotate if needed)
     processing_video_path = autorotate_video(video_path)
     print(f"Processing video: {processing_video_path}")
@@ -48,22 +84,9 @@ def segment_video_logic(
     fps, count = video_to_images(processing_video_path, frames_dir, frame_start, frame_end)
     print(f"Extracted {count} frames at {fps} FPS")
     
-    # 2. Setup MobileSAM
-    download_mobile_sam_weight(mobile_sam_weights)
-    
-    device = "cpu"
-    if torch.cuda.is_available():
-        device = "cuda"
-    elif torch.backends.mps.is_available():
-        device = "mps"
-    
-    print(f"Using device: {device}")
+    # 2. Setup MobileSAM (Cached)
+    predictor, device = get_sam_predictor(mobile_sam_weights)
 
-    # Load SAM
-    sam = sam_model_registry["vit_t"](checkpoint=mobile_sam_weights)
-    sam.to(device=device)
-    sam.eval()
-    predictor = SamPredictor(sam)
 
     # Prepare background color (if not transparent)
     if not is_transparent:

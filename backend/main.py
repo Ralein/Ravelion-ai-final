@@ -10,12 +10,20 @@ import shutil
 import uuid
 import json
 from typing import Optional
+import warnings
+
+# Suppress warnings from timm/mobile_sam
+warnings.filterwarnings("ignore", category=FutureWarning, module="timm")
+warnings.filterwarnings("ignore", category=UserWarning, module="mobile_sam")
 
 # Import core logic
 # Ensure core is a package 
 # In backend directory, core/ is a package.
 from core.engine import segment_video_logic
+from core.engine import segment_video_logic
 from core.utils import extract_first_frame
+from core.cleanup import cleanup_old_files, cleanup_all_contents
+import asyncio
 
 app = FastAPI(title="Ravelion AI Backend")
 
@@ -38,7 +46,24 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 os.makedirs(FRAMES_DIR, exist_ok=True)
 os.makedirs(TEMP_DIR, exist_ok=True)
+os.makedirs(TEMP_DIR, exist_ok=True)
 os.makedirs("models", exist_ok=True)
+
+# Background Task for Cleanup
+async def run_periodic_cleanup():
+    while True:
+        try:
+            # Check every 30 minutes
+            await asyncio.sleep(1800) 
+            print("Running periodic cleanup...")
+            cleanup_old_files([UPLOAD_DIR, FRAMES_DIR, TEMP_DIR, OUTPUT_DIR], max_age_seconds=3600)
+        except Exception as e:
+            print(f"Cleanup task error: {e}")
+            await asyncio.sleep(60) # Retry after 1 min on error
+
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(run_periodic_cleanup())
 
 # Mount static for serving results
 app.mount("/outputs", StaticFiles(directory=OUTPUT_DIR), name="outputs")
@@ -57,12 +82,9 @@ async def cleanup_system():
         # Directories to clear
         dirs_to_clear = [UPLOAD_DIR, FRAMES_DIR, TEMP_DIR, OUTPUT_DIR]
         
-        for d in dirs_to_clear:
-            if os.path.exists(d):
-                shutil.rmtree(d)
-                os.makedirs(d, exist_ok=True)
+        count = cleanup_all_contents(dirs_to_clear)
                 
-        return {"status": "success", "message": "System cleanup complete"}
+        return {"status": "success", "message": f"System cleanup complete. Removed {count} items."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Cleanup failed: {str(e)}")
 
@@ -99,7 +121,7 @@ async def upload_video(file: UploadFile = File(...)):
 app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 @app.post("/segment-video")
-async def segment_video(
+def segment_video(
     video_id: str = Form(...),
     bbox: str = Form(...), # JSON string "[xmin, ymin, xmax, ymax]"
     frame_start: int = Form(0),
@@ -175,7 +197,7 @@ async def segment_video(
         raise HTTPException(status_code=500, detail=f"Segmentation failed: {str(e)}")
 
 @app.post("/auto-remove")
-async def auto_remove(
+def auto_remove(
     video_id: str = Form(...),
     background_color: str = Form("#00FF00")
 ):
