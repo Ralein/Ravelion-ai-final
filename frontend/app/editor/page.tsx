@@ -481,13 +481,30 @@ export default function EditorPage() {
                             <div className="flex flex-1 flex-col">
                                 <video src={resultUrl} controls autoPlay loop className="w-full rounded-xl border border-white/10" />
                                 <div className="mt-6 flex justify-end">
-                                    <a
-                                        href={resultUrl}
-                                        download={`bg_removed_${videoFile?.name || 'video'}.mp4`}
+                                    <button
+                                        onClick={async () => {
+                                            if (!resultUrl) return;
+                                            try {
+                                                const response = await fetch(resultUrl);
+                                                const blob = await response.blob();
+                                                const url = window.URL.createObjectURL(blob);
+                                                const link = document.createElement('a');
+                                                link.href = url;
+                                                link.download = `bg_removed_${videoFile?.name || 'video'}.mp4`;
+                                                document.body.appendChild(link);
+                                                link.click();
+                                                document.body.removeChild(link);
+                                                window.URL.revokeObjectURL(url);
+                                            } catch (error) {
+                                                console.error("Download failed", error);
+                                                // Fallback: open in new tab
+                                                window.open(resultUrl, '_blank');
+                                            }
+                                        }}
                                         className="btn-primary inline-flex items-center gap-2"
                                     >
                                         Download Video
-                                    </a>
+                                    </button>
                                 </div>
                             </div>
                         ) : (
