@@ -11,6 +11,8 @@ export const metadata: Metadata = {
 
 import CopyProtection from "./components/CopyProtection";
 
+import WakeUpModal from "./components/WakeUpModal";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -20,6 +22,7 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body className={`${inter.className} min-h-screen bg-neutral-950 text-white`}>
         <CopyProtection />
+        <WakeUpModal />
         {children}
       </body>
     </html>

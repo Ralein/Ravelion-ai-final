@@ -11,7 +11,7 @@ import { useState } from "react";
 import ConfirmationModal from "./components/ConfirmationModal";
 import SuccessModal from "./components/SuccessModal";
 
-const API_URL = "http://localhost:8000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 const features = [
   {
