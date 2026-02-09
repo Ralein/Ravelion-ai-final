@@ -1,14 +1,12 @@
 "use client";
 
 import { useState, useRef } from "react";
-import axios from "axios";
 import { Upload, X, Download, Loader2, ArrowLeft, Music, Play, VolumeX, Volume2 } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
 import LoadingMessage from "../../components/LoadingMessage";
 import DragDropUpload from "../../components/DragDropUpload";
-
-const API_URL = "http://127.0.0.1:8000";
+import { uploadVideo, processVideo, api } from "../../lib/api";
 
 export default function AudioPage() {
     const [videoFile, setVideoFile] = useState<File | null>(null);
@@ -24,12 +22,9 @@ export default function AudioPage() {
         setVideoFile(file);
         setIsUploading(true);
 
-        const formData = new FormData();
-        formData.append("file", file);
-
         try {
-            const res = await axios.post(`${API_URL}/upload-video`, formData);
-            setVideoId(res.data.video_id);
+            const res = await uploadVideo(file);
+            setVideoId(res.video_id);
             setResultUrl(null);
         } catch (err) {
             console.error("Upload failed", err);
@@ -51,13 +46,10 @@ export default function AudioPage() {
         setIsProcessing(true);
         setProcessingStatus(mode === "extract" ? "Extracting audio..." : "Removing audio...");
 
-        const formData = new FormData();
-        formData.append("video_id", videoId);
-
         try {
             const endpoint = mode === "extract" ? "/extract-audio" : "/remove-audio";
-            const res = await axios.post(`${API_URL}${endpoint}`, formData);
-            setResultUrl(mode === "extract" ? res.data.audio_url : res.data.video_url);
+            const res = await processVideo(endpoint, videoId);
+            setResultUrl(mode === "extract" ? res.audio_url as string : res.video_url as string);
             setProcessingStatus("Complete!");
         } catch (err) {
             console.error("Processing failed", err);
@@ -200,7 +192,7 @@ export default function AudioPage() {
                                         onClick={async () => {
                                             if (!resultUrl) return;
                                             try {
-                                                const response = await axios.get(resultUrl, { responseType: 'blob' });
+                                                const response = await api.get(resultUrl, { responseType: 'blob' });
                                                 const url = window.URL.createObjectURL(new Blob([response.data]));
                                                 const link = document.createElement('a');
                                                 link.href = url;

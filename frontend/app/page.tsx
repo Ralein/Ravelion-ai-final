@@ -6,12 +6,10 @@
 
 import Link from "next/link";
 import { Image, Video, Clock, Zap, Music, FileType, Minimize2, ArrowRight, Github, Eraser } from "lucide-react";
-import axios from "axios";
 import { useState } from "react";
 import ConfirmationModal from "./components/ConfirmationModal";
 import SuccessModal from "./components/SuccessModal";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+import { cleanupSystem } from "./lib/api";
 
 const features = [
   {
@@ -86,7 +84,7 @@ export default function Home() {
 
   const confirmCleanup = async () => {
     try {
-      await axios.post(`${API_URL}/cleanup`);
+      await cleanupSystem();
       setShowCleanupModal(false);
       setShowSuccessModal(true);
     } catch (err) {
