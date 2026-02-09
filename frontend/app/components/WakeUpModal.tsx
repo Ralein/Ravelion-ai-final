@@ -13,11 +13,12 @@ export default function WakeUpModal() {
     useEffect(() => {
         const checkHealth = async () => {
             try {
-                await axios.get(`${API_URL}/ping`, { timeout: 5000 });
+                console.log(`Checking backend health at: ${API_URL}/ping`);
+                await axios.get(`${API_URL}/ping`, { timeout: 30000 });
                 setIsAsleep(false);
                 setIsRetrying(false);
             } catch (error) {
-                console.error("Backend health check failed", error);
+                console.error("Backend health check failed:", error);
                 setIsAsleep(true);
                 // Retry logic: keep pinging every 5 seconds until awake
                 setTimeout(checkHealth, 5000);

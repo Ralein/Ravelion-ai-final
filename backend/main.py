@@ -10,6 +10,7 @@ import shutil
 import uuid
 import json
 from typing import Optional
+from fastapi import Request
 import warnings
 
 # Suppress warnings from timm/mobile_sam
@@ -65,6 +66,20 @@ async def run_periodic_cleanup():
 async def startup_event():
     asyncio.create_task(run_periodic_cleanup())
 
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    try:
+        response = await call_next(request)
+        return response
+    except Exception as e:
+        import traceback
+        print(f"ERROR: Unhandled exception during {request.url.path}")
+        traceback.print_exc()
+        return JSONResponse(
+            status_code=500,
+            content={"detail": f"Internal Server Error: {str(e)}", "traceback": traceback.format_exc()}
+        )
+
 # Mount static for serving results
 app.mount("/outputs", StaticFiles(directory=OUTPUT_DIR), name="outputs")
 app.mount("/frames", StaticFiles(directory=FRAMES_DIR), name="frames")
@@ -93,11 +108,13 @@ async def cleanup_system():
         raise HTTPException(status_code=500, detail=f"Cleanup failed: {str(e)}")
 
 @app.post("/upload-video")
-async def upload_video(file: UploadFile = File(...)):
+async def upload_video(request: Request, file: UploadFile = File(...)):
     video_id = str(uuid.uuid4())
     video_ext = file.filename.split(".")[-1]
     video_filename = f"{video_id}.{video_ext}"
     video_path = os.path.join(UPLOAD_DIR, video_filename)
+    
+    base_url = str(request.base_url).rstrip("/")
     
     with open(video_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
@@ -114,10 +131,8 @@ async def upload_video(file: UploadFile = File(...)):
         
     return {
         "video_id": video_id,
-        "video_url": f"/uploads/{video_filename}", # Not served yet, need mount? 
-        # Actually user just needs ID to segment.
-        # But UI might want to play it.
-        "frame_url": f"http://localhost:8000/frames/{frame_filename}",
+        "video_url": f"/uploads/{video_filename}", 
+        "frame_url": f"{base_url}/frames/{frame_filename}",
         "raw_video_path": video_path
     }
 
@@ -126,12 +141,14 @@ app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 @app.post("/segment-video")
 def segment_video(
+    request: Request,
     video_id: str = Form(...),
     bbox: str = Form(...), # JSON string "[xmin, ymin, xmax, ymax]"
     frame_start: int = Form(0),
     frame_end: int = Form(0),
     background_color: str = Form("#00FF00")
 ):
+    base_url = str(request.base_url).rstrip("/")
     # Find video
     # We need extraction of path logic. 
     # Simply looking for file in uploads.
@@ -192,7 +209,7 @@ def segment_video(
             
         return {
             "status": "success",
-            "video_url": f"http://localhost:8000/outputs/{actual_filename}"
+            "video_url": f"{base_url}/outputs/{actual_filename}"
         }
         
     except Exception as e:
@@ -202,13 +219,11 @@ def segment_video(
 
 @app.post("/auto-remove")
 def auto_remove(
+    request: Request,
     video_id: str = Form(...),
     background_color: str = Form("#00FF00")
 ):
-    """
-    Auto mode: Automatically detect and segment the main subject.
-    Uses a large bounding box covering the full frame to let SAM detect the subject.
-    """
+    base_url = str(request.base_url).rstrip("/")
     # Find video
     video_files = [f for f in os.listdir(UPLOAD_DIR) if f.startswith(video_id)]
     if not video_files:
@@ -267,7 +282,7 @@ def auto_remove(
             
         return {
             "status": "success",
-            "video_url": f"http://localhost:8000/outputs/{actual_filename}"
+            "video_url": f"{base_url}/outputs/{actual_filename}"
         }
         
     except Exception as e:
@@ -280,13 +295,13 @@ def auto_remove(
 
 @app.post("/remove-bg-pro")
 async def remove_bg_pro(
+    request: Request,
     file: UploadFile = File(...),
     background_color: str = Form("transparent")
 ):
-    """
-    Remove background from image using rembg or similar.
-    For now uses a simple approach - can be upgraded to BiRefNet later.
-    """
+    base_url = str(request.base_url).rstrip("/")
+    # ... (rembg logic stays same)
+    # Skip unchanged code for brevity in tool call if possible? No, need full block for replace.
     import cv2
     import numpy as np
     from PIL import Image
@@ -331,10 +346,6 @@ async def remove_bg_pro(
             # Enforce PNG for transparency
             ext = "png"
         
-        # If we resized, we might want to resize back? 
-        # Actually, for web tools, 1500px is usually enough. 
-        # Resizing back up creates blur. Let's keep it optimized or offer an "HD" option later.
-        
     except ImportError:
         # Fallback: simple GrabCut-like approach
         mask = np.zeros(img.shape[:2], np.uint8)
@@ -368,7 +379,7 @@ async def remove_bg_pro(
     
     return {
         "status": "success",
-        "image_url": f"http://localhost:8000/outputs/{output_filename}"
+        "image_url": f"{base_url}/outputs/{output_filename}"
     }
 
 
@@ -384,9 +395,11 @@ def find_video_path(video_id: str):
 
 @app.post("/slowmo")
 async def slowmo(
+    request: Request,
     video_id: str = Form(...),
     speed: float = Form(0.5)
 ):
+    base_url = str(request.base_url).rstrip("/")
     """Apply slow motion effect using FFmpeg."""
     import subprocess
     
@@ -434,9 +447,11 @@ async def slowmo(
 
 @app.post("/fastmo")
 async def fastmo(
+    request: Request,
     video_id: str = Form(...),
     speed: float = Form(2.0)
 ):
+    base_url = str(request.base_url).rstrip("/")
     """Apply fast motion effect using FFmpeg."""
     import subprocess
     
@@ -490,7 +505,8 @@ async def fastmo(
 # ================== AUDIO TOOLS ==================
 
 @app.post("/extract-audio")
-async def extract_audio(video_id: str = Form(...)):
+async def extract_audio(request: Request, video_id: str = Form(...)):
+    base_url = str(request.base_url).rstrip("/")
     """Extract audio from video as MP3."""
     import subprocess
     
@@ -517,12 +533,13 @@ async def extract_audio(video_id: str = Form(...)):
     
     return {
         "status": "success",
-        "audio_url": f"http://localhost:8000/outputs/{output_filename}"
+        "audio_url": f"{base_url}/outputs/{output_filename}"
     }
 
 
 @app.post("/remove-audio")
-async def remove_audio(video_id: str = Form(...)):
+async def remove_audio(request: Request, video_id: str = Form(...)):
+    base_url = str(request.base_url).rstrip("/")
     """Remove audio from video, output silent video."""
     import subprocess
     
@@ -548,7 +565,7 @@ async def remove_audio(video_id: str = Form(...)):
     
     return {
         "status": "success",
-        "video_url": f"http://localhost:8000/outputs/{output_filename}"
+        "video_url": f"{base_url}/outputs/{output_filename}"
     }
 
 
@@ -556,9 +573,11 @@ async def remove_audio(video_id: str = Form(...)):
 
 @app.post("/convert")
 async def convert_video(
+    request: Request,
     video_id: str = Form(...),
     format: str = Form("mp4")
 ):
+    base_url = str(request.base_url).rstrip("/")
     """Convert video to different format."""
     import subprocess
     
@@ -591,7 +610,7 @@ async def convert_video(
     
     return {
         "status": "success",
-        "video_url": f"http://localhost:8000/outputs/{output_filename}"
+        "video_url": f"{base_url}/outputs/{output_filename}"
     }
 
 
@@ -599,9 +618,11 @@ async def convert_video(
 
 @app.post("/compress")
 async def compress_video(
+    request: Request,
     video_id: str = Form(...),
     quality: str = Form("medium")
 ):
+    base_url = str(request.base_url).rstrip("/")
     """Compress video with different quality levels."""
     import subprocess
     
@@ -639,7 +660,7 @@ async def compress_video(
     
     return {
         "status": "success",
-        "video_url": f"http://localhost:8000/outputs/{output_filename}"
+        "video_url": f"{base_url}/outputs/{output_filename}"
     }
 
 
@@ -647,9 +668,11 @@ async def compress_video(
 
 @app.post("/compress-image")
 async def compress_image(
+    request: Request,
     file: UploadFile = File(...),
     quality: int = Form(50)  # 1-100
 ):
+    base_url = str(request.base_url).rstrip("/")
     """Compress image with specified quality."""
     import io
     from PIL import Image
@@ -698,7 +721,7 @@ async def compress_image(
             
         return {
             "status": "success",
-            "image_url": f"http://localhost:8000/outputs/{output_filename}"
+            "image_url": f"{base_url}/outputs/{output_filename}"
         }
     except Exception as e:
         import traceback
@@ -707,9 +730,11 @@ async def compress_image(
 
 @app.post("/convert-image")
 async def convert_image(
+    request: Request,
     file: UploadFile = File(...),
     format: str = Form(...) # png, jpg, webp, bmp, tiff
 ):
+    base_url = str(request.base_url).rstrip("/")
     """Convert image to specified format."""
     import io
     from PIL import Image
@@ -750,7 +775,7 @@ async def convert_image(
             
         return {
             "status": "success",
-            "image_url": f"http://localhost:8000/outputs/{output_filename}"
+            "image_url": f"{base_url}/outputs/{output_filename}"
         }
     except Exception as e:
         import traceback
