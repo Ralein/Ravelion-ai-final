@@ -481,27 +481,13 @@ export default function EditorPage() {
                             <div className="flex flex-1 flex-col">
                                 <video src={resultUrl} controls autoPlay loop className="w-full rounded-xl border border-white/10" />
                                 <div className="mt-6 flex justify-end">
-                                    <button
-                                        onClick={async () => {
-                                            if (!resultUrl) return;
-                                            try {
-                                                const response = await axios.get(resultUrl, { responseType: 'blob' });
-                                                const url = window.URL.createObjectURL(new Blob([response.data]));
-                                                const link = document.createElement('a');
-                                                link.href = url;
-                                                link.setAttribute('download', `bg_removed_${videoFile?.name || 'video'}.mp4`);
-                                                document.body.appendChild(link);
-                                                link.click();
-                                                link.parentNode?.removeChild(link);
-                                                window.URL.revokeObjectURL(url);
-                                            } catch (error) {
-                                                console.error("Download failed", error);
-                                            }
-                                        }}
+                                    <a
+                                        href={resultUrl}
+                                        download={`bg_removed_${videoFile?.name || 'video'}.mp4`}
                                         className="btn-primary inline-flex items-center gap-2"
                                     >
                                         Download Video
-                                    </button>
+                                    </a>
                                 </div>
                             </div>
                         ) : (
