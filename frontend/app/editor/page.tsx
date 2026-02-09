@@ -67,8 +67,9 @@ export default function EditorPage() {
 
         try {
             const res = await axios.post(`${API_URL}/upload-video`, formData);
+            console.log("Upload response:", res.data);
             setVideoId(res.data.video_id);
-            setFrameUrl(res.data.frame_url);
+            setFrameUrl(res.data.first_frame_url);
             setResultUrl(null);
             setSuccessTitle("Upload Complete");
             setSuccessMessage("Video uploaded successfully. You can now adjust the settings.");
@@ -88,8 +89,13 @@ export default function EditorPage() {
     };
 
     const handleSegment = async () => {
-        if (!videoId) return;
+        console.log("handleSegment called - videoId:", videoId, "imgDims:", imgDims, "mode:", mode);
+        if (!videoId) {
+            console.log("No videoId, returning early");
+            return;
+        }
         if (mode === "segment" && !imgDims) {
+            console.log("Mode is segment but imgDims is null");
             alert("Please wait for the frame to load!");
             return;
         }
@@ -156,7 +162,9 @@ export default function EditorPage() {
         if (frameUrl) {
             const img = new Image();
             img.crossOrigin = "anonymous";
-            img.src = frameUrl;
+            // Ensure URL is absolute
+            const fullUrl = frameUrl.startsWith("http") ? frameUrl : `${API_URL}${frameUrl}`;
+            img.src = fullUrl;
             img.onload = () => {
                 imgRef.current = img;
                 setImgDims({ w: img.width, h: img.height });
@@ -164,6 +172,9 @@ export default function EditorPage() {
                 setYmin(Math.floor(img.height / 4));
                 setXmax(Math.floor(img.width * 3 / 4));
                 setYmax(Math.floor(img.height * 3 / 4));
+            };
+            img.onerror = (err) => {
+                console.error("Failed to load frame image:", err, "URL:", fullUrl);
             };
         }
     }, [frameUrl]);
@@ -287,57 +298,52 @@ export default function EditorPage() {
                         <div className="card p-6">
                             <h2 className="mb-4 text-sm font-medium text-white/70">1. Upload Video</h2>
 
-                            <DragDropUpload
-                                onFileSelect={(file) => {
-                                    setVideoFile(file);
-                                    // Trigger upload logic immediately or just set file? 
-                                    // Existing logic was onChange on input which calls handleUpload.
-                                    // handleUpload expects a ChangeEvent, let's adapt it.
-                                    // Actually better to just extract the logic from handleUpload.
-                                    // Let's modify handleUpload first? No, just call the logic here.
+                            {!videoFile && !isUploading && (
+                                <DragDropUpload
+                                    onFileSelect={(file) => uploadFile(file)}
+                                    accept="video/*"
+                                    label="Upload Video"
+                                    subLabel="Drag and drop or click to upload"
+                                    icon={Upload}
+                                    maxSizeMB={100}
+                                />
+                            )}
 
-                                    // We need to simulate the event or just call the upload function directly?
-                                    // Refactoring handleUpload to accept File object is cleaner but let's stick to minimal changes.
-                                    // I'll create a synthetic event or just copy logic.
-                                    // Let's just create a helper function for uploading.
-                                    uploadFile(file);
-                                }}
-                                accept="video/*"
-                                label="Upload Video"
-                                subLabel="Drag and drop or click to upload"
-                                icon={Upload}
-                                maxSizeMB={100}
-                            />
-                            ) : (
-                            <div
-                                className="flex items-center justify-between rounded-xl bg-white/[0.03] border border-white/10 p-4 cursor-pointer hover:bg-white/[0.05] transition-colors group"
-                                onClick={() => fileInputRef.current?.click()}
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div className="h-10 w-10 rounded-lg bg-white/10 flex items-center justify-center">
-                                        <Play size={18} className="text-white/70" />
-                                    </div>
-                                    <div>
-                                        <p className="text-sm font-medium max-w-[200px] truncate">{videoFile?.name}</p>
-                                        <p className="text-xs text-white/40">{(videoFile?.size ? videoFile.size / 1024 / 1024 : 0).toFixed(2)} MB</p>
+                            {isUploading && (
+                                <div className="flex items-center justify-center gap-3 rounded-xl bg-white/[0.03] border border-white/10 p-6">
+                                    <Loader2 size={20} className="animate-spin text-white/70" />
+                                    <p className="text-sm text-white/70">Uploading video...</p>
+                                </div>
+                            )}
+
+                            {videoFile && !isUploading && (
+                                <div className="relative rounded-xl overflow-hidden bg-white/[0.02] group animate-fade-in">
+                                    <video
+                                        src={URL.createObjectURL(videoFile)}
+                                        className="w-full max-h-56 object-contain"
+                                        muted
+                                        autoPlay
+                                        loop
+                                    />
+                                    <button
+                                        onClick={() => {
+                                            setVideoFile(null);
+                                            setVideoId(null);
+                                            setFrameUrl(null);
+                                            setImgDims(null);
+                                            setResultUrl(null);
+                                        }}
+                                        className="absolute top-3 right-3 p-2 rounded-full bg-black/60 text-white/70 hover:text-white hover:bg-black/80 transition-colors z-10"
+                                    >
+                                        <X size={16} />
+                                    </button>
+                                    <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
+                                        <p className="text-sm font-medium truncate">{videoFile.name}</p>
+                                        <p className="text-xs text-white/50">{(videoFile.size / 1024 / 1024).toFixed(2)} MB</p>
                                     </div>
                                 </div>
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setVideoFile(null);
-                                        setVideoId(null);
-                                        setFrameUrl(null);
-                                        setImgDims(null);
-                                        // Reset input
-                                        if (fileInputRef.current) fileInputRef.current.value = "";
-                                    }}
-                                    className="text-white/40 hover:text-white transition-colors p-2"
-                                >
-                                    <X size={18} />
-                                </button>
-                            </div>
-                            )
+                            )}
+
                         </div>
 
                         {/* Bounding Box */}
