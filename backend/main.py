@@ -73,6 +73,10 @@ app.mount("/frames", StaticFiles(directory=FRAMES_DIR), name="frames")
 def read_root():
     return {"message": "Ravelion AI Backend is running"}
 
+@app.get("/ping")
+async def ping():
+    return {"status": "ok"}
+
 @app.post("/cleanup")
 async def cleanup_system():
     """
