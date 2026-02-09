@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Mail, Loader2, Moon } from "lucide-react";
 import axios from "axios";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
 export default function WakeUpModal() {
     const [isAsleep, setIsAsleep] = useState(false);

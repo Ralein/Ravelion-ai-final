@@ -7,7 +7,7 @@ import Link from "next/link";
 import clsx from "clsx";
 import LoadingMessage from "../../components/LoadingMessage";
 
-const API_URL = "http://localhost:8000";
+const API_URL = "http://127.0.0.1:8000";
 
 export default function AudioPage() {
     const [videoFile, setVideoFile] = useState<File | null>(null);

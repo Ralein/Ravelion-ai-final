@@ -7,7 +7,7 @@ import Link from "next/link";
 import clsx from "clsx";
 import LoadingMessage from "../../components/LoadingMessage";
 
-const API_URL = "http://localhost:8000";
+const API_URL = "http://127.0.0.1:8000";
 
 const FORMATS = [
     { value: "mp4", label: "MP4", desc: "Universal" },

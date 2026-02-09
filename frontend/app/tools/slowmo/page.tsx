@@ -6,7 +6,7 @@ import { Upload, X, Download, Loader2, ArrowLeft, Clock, Play } from "lucide-rea
 import Link from "next/link";
 import LoadingMessage from "../../components/LoadingMessage";
 
-const API_URL = "http://localhost:8000";
+const API_URL = "http://127.0.0.1:8000";
 
 export default function SlowMoPage() {
     const [videoFile, setVideoFile] = useState<File | null>(null);

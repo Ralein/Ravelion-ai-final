@@ -6,7 +6,7 @@ import { Upload, X, Download, Loader2, ArrowLeft, Zap, Play } from "lucide-react
 import Link from "next/link";
 import LoadingMessage from "../../components/LoadingMessage";
 
-const API_URL = "http://localhost:8000";
+const API_URL = "http://127.0.0.1:8000";
 
 export default function FastMoPage() {
     const [videoFile, setVideoFile] = useState<File | null>(null);
