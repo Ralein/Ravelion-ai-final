@@ -1,17 +1,29 @@
 import os
 import cv2
 import numpy as np
-import torch
-from mobile_sam import SamPredictor, sam_model_registry
-from PIL import Image
+import gc
 
-from .utils import video_to_images, images_to_video, images_to_video_transparent, download_mobile_sam_weight, autorotate_video
-
-
+# Lazy imports - don't load torch until needed
+_torch = None
+_sam_module = None
 
 # Global cache for the predictor
 _CACHED_PREDICTOR = None
 _CACHED_DEVICE = None
+
+def _get_torch():
+    global _torch
+    if _torch is None:
+        import torch
+        _torch = torch
+    return _torch
+
+def _get_sam_module():
+    global _sam_module
+    if _sam_module is None:
+        from mobile_sam import SamPredictor, sam_model_registry
+        _sam_module = (SamPredictor, sam_model_registry)
+    return _sam_module
 
 def get_sam_predictor(mobile_sam_weights):
     global _CACHED_PREDICTOR, _CACHED_DEVICE
@@ -22,7 +34,11 @@ def get_sam_predictor(mobile_sam_weights):
         return _CACHED_PREDICTOR, _CACHED_DEVICE
 
     print("Loading MobileSAM model...")
+    from .utils import download_mobile_sam_weight
     download_mobile_sam_weight(mobile_sam_weights)
+    
+    torch = _get_torch()
+    SamPredictor, sam_model_registry = _get_sam_module()
     
     device = "cpu"
     if torch.cuda.is_available():
@@ -45,6 +61,14 @@ def get_sam_predictor(mobile_sam_weights):
     return predictor, device
 
 
+def clear_model_cache():
+    """Clear cached models to free memory."""
+    global _CACHED_PREDICTOR, _CACHED_DEVICE
+    _CACHED_PREDICTOR = None
+    _CACHED_DEVICE = None
+    gc.collect()
+
+
 def segment_video_logic(
     video_path,
     bbox_list,  # passed as list [xmin, ymin, xmax, ymax]
@@ -61,6 +85,10 @@ def segment_video_logic(
     The bbox is used for all frames (no tracking).
     Supports transparent background output when background_color="transparent".
     """
+    # Lazy imports
+    from PIL import Image
+    from .utils import video_to_images, images_to_video, images_to_video_transparent, autorotate_video
+    
     # Setup directories
     frames_dir = os.path.join(work_dir, "frames")
     processed_dir = os.path.join(work_dir, "processed")
