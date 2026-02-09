@@ -5,6 +5,7 @@ import axios from "axios";
 import { Upload, X, Download, Loader2, ArrowLeft, Clock, Play } from "lucide-react";
 import Link from "next/link";
 import LoadingMessage from "../../components/LoadingMessage";
+import DragDropUpload from "../../components/DragDropUpload";
 
 const API_URL = "http://127.0.0.1:8000";
 
@@ -18,25 +19,28 @@ export default function SlowMoPage() {
     const [processingStatus, setProcessingStatus] = useState("");
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    const uploadFile = async (file: File) => {
+        setVideoFile(file);
+        setIsUploading(true);
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        try {
+            const res = await axios.post(`${API_URL}/upload-video`, formData);
+            setVideoId(res.data.video_id);
+            setResultUrl(null);
+        } catch (err) {
+            console.error("Upload failed", err);
+            alert("Upload failed");
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
-            const file = e.target.files[0];
-            setVideoFile(file);
-            setIsUploading(true);
-
-            const formData = new FormData();
-            formData.append("file", file);
-
-            try {
-                const res = await axios.post(`${API_URL}/upload-video`, formData);
-                setVideoId(res.data.video_id);
-                setResultUrl(null);
-            } catch (err) {
-                console.error("Upload failed", err);
-                alert("Upload failed");
-            } finally {
-                setIsUploading(false);
-            }
+            uploadFile(e.target.files[0]);
         }
     };
 
@@ -86,22 +90,14 @@ export default function SlowMoPage() {
                         <div className="card p-6">
                             <h2 className="mb-4 text-sm font-medium text-white/70">1. Upload Video</h2>
 
-                            <input
-                                ref={fileInputRef}
-                                type="file"
-                                className="hidden"
-                                accept="video/*"
-                                onChange={handleUpload}
-                            />
-
                             {!videoFile ? (
-                                <label
-                                    onClick={() => fileInputRef.current?.click()}
-                                    className="upload-zone flex h-44 w-full cursor-pointer flex-col items-center justify-center"
-                                >
-                                    <Upload className="mb-3 h-8 w-8 text-white/30" />
-                                    <p className="text-sm text-white/50"><span className="text-white/70">Click to upload</span></p>
-                                </label>
+                                <DragDropUpload
+                                    onFileSelect={uploadFile}
+                                    accept="video/*"
+                                    label="Upload Video"
+                                    subLabel="Drag and drop or click to upload"
+                                    icon={Upload}
+                                />
                             ) : (
                                 <div
                                     className="flex items-center justify-between rounded-xl bg-white/[0.03] border border-white/10 p-4 cursor-pointer hover:bg-white/[0.05] transition-colors group"

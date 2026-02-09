@@ -5,7 +5,7 @@
 "use client";
 
 import Link from "next/link";
-import { Image, Video, Clock, Zap, Music, FileType, Minimize2, ArrowRight, Github } from "lucide-react";
+import { Image, Video, Clock, Zap, Music, FileType, Minimize2, ArrowRight, Github, Eraser } from "lucide-react";
 import axios from "axios";
 import { useState } from "react";
 import ConfirmationModal from "./components/ConfirmationModal";
@@ -67,6 +67,12 @@ const features = [
     description: "Convert JPG, PNG, WebP",
     icon: FileType,
     href: "/tools/image-convert",
+  },
+  {
+    title: "Watermark Remover",
+    description: "Remove watermarks from images & videos",
+    icon: Eraser,
+    href: "/tools/watermark",
   },
 ];
 

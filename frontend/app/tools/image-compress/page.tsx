@@ -6,6 +6,7 @@ import { Upload, X, Download, Loader2, ArrowLeft, Minimize2, Image as ImageIcon,
 import Link from "next/link";
 import clsx from "clsx";
 import LoadingMessage from "../../components/LoadingMessage";
+import DragDropUpload from "../../components/DragDropUpload";
 
 const API_URL = "http://127.0.0.1:8000";
 
@@ -23,10 +24,14 @@ export default function ImageCompressPage() {
     const [processingStatus, setProcessingStatus] = useState("");
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    const uploadFile = (file: File) => {
+        setImageFile(file);
+        setResultUrl(null);
+    };
+
     const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
-            setImageFile(e.target.files[0]);
-            setResultUrl(null);
+            uploadFile(e.target.files[0]);
         }
     };
 
@@ -74,22 +79,14 @@ export default function ImageCompressPage() {
                     <div className="space-y-6">
                         <div className="card p-6">
                             <h2 className="mb-4 text-sm font-medium text-white/70">1. Upload Image</h2>
-                            <input
-                                ref={fileInputRef}
-                                type="file"
-                                className="hidden"
-                                accept="image/*"
-                                onChange={handleUpload}
-                            />
                             {!imageFile ? (
-                                <label
-                                    onClick={() => fileInputRef.current?.click()}
-                                    className="upload-zone flex h-44 w-full cursor-pointer flex-col items-center justify-center"
-                                >
-                                    <ImageIcon className="mb-3 h-8 w-8 text-white/30" />
-                                    <p className="text-sm text-white/50"><span className="text-white/70">Click to upload</span></p>
-                                    <p className="text-xs text-white/30 mt-1">JPG, PNG, WEBP</p>
-                                </label>
+                                <DragDropUpload
+                                    onFileSelect={uploadFile}
+                                    accept="image/*"
+                                    label="Upload Image"
+                                    subLabel="Drag and drop or click to upload"
+                                    icon={ImageIcon}
+                                />
                             ) : (
                                 <div
                                     className="flex items-center justify-between rounded-xl bg-white/[0.03] border border-white/10 p-4 cursor-pointer hover:bg-white/[0.05] transition-colors group"

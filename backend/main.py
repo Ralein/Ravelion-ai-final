@@ -783,6 +783,153 @@ async def convert_image(
         raise HTTPException(status_code=500, detail=f"Image conversion failed: {str(e)}")
 
 
+# ================== WATERMARK REMOVAL ==================
+
+@app.post("/remove-watermark-image")
+async def remove_watermark_image(
+    request: Request,
+    file: UploadFile = File(...),
+    bbox: str = Form(...) # JSON string "[xmin, ymin, xmax, ymax]"
+):
+    base_url = str(request.base_url).rstrip("/")
+    import cv2
+    import numpy as np
+    import io
+    from PIL import Image
+    
+    try:
+        bbox_list = json.loads(bbox)
+        xmin, ymin, xmax, ymax = [int(c) for c in bbox_list]
+    except:
+        raise HTTPException(status_code=400, detail="Invalid bbox format")
+        
+    try:
+        contents = await file.read()
+        nparr = np.frombuffer(contents, np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        
+        if img is None:
+             raise HTTPException(status_code=400, detail="Invalid image")
+             
+        # Create mask
+        mask = np.zeros(img.shape[:2], dtype=np.uint8)
+        # cv2.rectangle(mask, (xmin, ymin), (xmax, ymax), 255, -1)
+        # Using slice for mask is cleaner
+        mask[ymin:ymax, xmin:xmax] = 255
+        
+        # Inpaint
+        # NSF = Navier-Stokes, TELEA = Alexandru Telea method
+        # Telea is generally faster and good for small defects
+        result = cv2.inpaint(img, mask, 3, cv2.INPAINT_TELEA)
+        
+        # Save result
+        output_filename = f"watermark_removed_{uuid.uuid4()}.jpg"
+        output_path = os.path.join(OUTPUT_DIR, output_filename)
+        
+        cv2.imwrite(output_path, result)
+        
+        return {
+            "status": "success",
+            "image_url": f"{base_url}/outputs/{output_filename}"
+        }
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Watermark removal failed: {str(e)}")
+
+
+@app.post("/remove-watermark-video")
+def remove_watermark_video(
+    request: Request,
+    video_id: str = Form(...),
+    bbox: str = Form(...)
+):
+    base_url = str(request.base_url).rstrip("/")
+    import cv2
+    import numpy as np
+    
+    video_path = find_video_path(video_id)
+    if not video_path:
+        raise HTTPException(status_code=404, detail="Video not found")
+        
+    try:
+        bbox_list = json.loads(bbox)
+        xmin, ymin, xmax, ymax = [int(c) for c in bbox_list]
+    except:
+        raise HTTPException(status_code=400, detail="Invalid bbox format")
+        
+    output_filename = f"{video_id}_watermark_removed.mp4"
+    output_path = os.path.join(OUTPUT_DIR, output_filename)
+    
+    try:
+        cap = cv2.VideoCapture(video_path)
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        
+        # Define codec and create VideoWriter
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
+        
+        # Create persistent mask since watermark is static
+        mask = np.zeros((height, width), dtype=np.uint8)
+        mask[ymin:ymax, xmin:xmax] = 255
+        
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                break
+                
+            # Inpaint frame
+            # Use lower radius for video to avoid temporal artifacts, but it's frame-by-frame
+            inpainted_frame = cv2.inpaint(frame, mask, 3, cv2.INPAINT_TELEA)
+            
+            out.write(inpainted_frame)
+            
+        cap.release()
+        out.release()
+        
+        # Add audio back?
+        # For simplicity, we just return video without audio or we can mix it back with ffmpeg
+        # Let's try to mix audio back if possible using ffmpeg provided it's installed
+        # But to be safe and simple, return as is (silent usually unless we merge)
+        # Using ffmpeg to merge audio is better UX.
+        
+        try:
+            temp_output = output_path.replace(".mp4", "_temp.mp4")
+            shutil.move(output_path, temp_output)
+            
+            import subprocess
+            cmd = [
+                'ffmpeg', '-y',
+                '-i', temp_output,
+                '-i', video_path,
+                '-c:v', 'copy',
+                '-c:a', 'aac',
+                '-map', '0:v:0',
+                '-map', '1:a:0',
+                output_path
+            ]
+            subprocess.run(cmd, check=True, capture_output=True)
+            if os.path.exists(temp_output):
+                os.remove(temp_output)
+        except Exception as e:
+            print(f"Audio merge failed, returning silent video: {e}")
+            if os.path.exists(temp_output):
+                shutil.move(temp_output, output_path)
+
+        return {
+            "status": "success",
+            "video_url": f"{base_url}/outputs/{output_filename}"
+        }
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Video watermark removal failed: {str(e)}")
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

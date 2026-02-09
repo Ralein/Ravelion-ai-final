@@ -8,6 +8,7 @@ import clsx from "clsx";
 import SuccessModal from "../components/SuccessModal";
 import ConfirmationModal from "../components/ConfirmationModal";
 import LoadingMessage from "../components/LoadingMessage";
+import DragDropUpload from "../components/DragDropUpload";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
@@ -57,29 +58,32 @@ export default function EditorPage() {
     const imgRef = useRef<HTMLImageElement | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    const uploadFile = async (file: File) => {
+        setVideoFile(file);
+        setIsUploading(true);
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        try {
+            const res = await axios.post(`${API_URL}/upload-video`, formData);
+            setVideoId(res.data.video_id);
+            setFrameUrl(res.data.frame_url);
+            setResultUrl(null);
+            setSuccessTitle("Upload Complete");
+            setSuccessMessage("Video uploaded successfully. You can now adjust the settings.");
+            setShowSuccessModal(true);
+        } catch (err) {
+            console.error("Upload failed", err);
+            alert("Upload failed");
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
-            const file = e.target.files[0];
-            setVideoFile(file);
-            setIsUploading(true);
-
-            const formData = new FormData();
-            formData.append("file", file);
-
-            try {
-                const res = await axios.post(`${API_URL}/upload-video`, formData);
-                setVideoId(res.data.video_id);
-                setFrameUrl(res.data.frame_url);
-                setResultUrl(null);
-                setSuccessTitle("Upload Complete");
-                setSuccessMessage("Video uploaded successfully. You can now adjust the settings.");
-                setShowSuccessModal(true);
-            } catch (err) {
-                console.error("Upload failed", err);
-                alert("Upload failed");
-            } finally {
-                setIsUploading(false);
-            }
+            uploadFile(e.target.files[0]);
         }
     };
 
@@ -283,53 +287,57 @@ export default function EditorPage() {
                         <div className="card p-6">
                             <h2 className="mb-4 text-sm font-medium text-white/70">1. Upload Video</h2>
 
-                            <input
-                                ref={fileInputRef}
-                                type="file"
-                                className="hidden"
-                                accept="video/*"
-                                onChange={handleUpload}
-                            />
+                            <DragDropUpload
+                                onFileSelect={(file) => {
+                                    setVideoFile(file);
+                                    // Trigger upload logic immediately or just set file? 
+                                    // Existing logic was onChange on input which calls handleUpload.
+                                    // handleUpload expects a ChangeEvent, let's adapt it.
+                                    // Actually better to just extract the logic from handleUpload.
+                                    // Let's modify handleUpload first? No, just call the logic here.
 
-                            {!videoFile ? (
-                                <label
-                                    onClick={() => fileInputRef.current?.click()}
-                                    className="upload-zone flex h-44 w-full cursor-pointer flex-col items-center justify-center"
-                                >
-                                    <Upload className="mb-3 h-8 w-8 text-white/30" />
-                                    <p className="text-sm text-white/50"><span className="text-white/70">Click to upload</span> or drag</p>
-                                    <p className="text-xs text-white/30 mt-1">MP4, MOV (Max 60s)</p>
-                                </label>
+                                    // We need to simulate the event or just call the upload function directly?
+                                    // Refactoring handleUpload to accept File object is cleaner but let's stick to minimal changes.
+                                    // I'll create a synthetic event or just copy logic.
+                                    // Let's just create a helper function for uploading.
+                                    uploadFile(file);
+                                }}
+                                accept="video/*"
+                                label="Upload Video"
+                                subLabel="Drag and drop or click to upload"
+                                icon={Upload}
+                                maxSizeMB={100}
+                            />
                             ) : (
-                                <div
-                                    className="flex items-center justify-between rounded-xl bg-white/[0.03] border border-white/10 p-4 cursor-pointer hover:bg-white/[0.05] transition-colors group"
-                                    onClick={() => fileInputRef.current?.click()}
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <div className="h-10 w-10 rounded-lg bg-white/10 flex items-center justify-center">
-                                            <Play size={18} className="text-white/70" />
-                                        </div>
-                                        <div>
-                                            <p className="text-sm font-medium max-w-[200px] truncate">{videoFile.name}</p>
-                                            <p className="text-xs text-white/40">{(videoFile.size / 1024 / 1024).toFixed(2)} MB</p>
-                                        </div>
+                            <div
+                                className="flex items-center justify-between rounded-xl bg-white/[0.03] border border-white/10 p-4 cursor-pointer hover:bg-white/[0.05] transition-colors group"
+                                onClick={() => fileInputRef.current?.click()}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="h-10 w-10 rounded-lg bg-white/10 flex items-center justify-center">
+                                        <Play size={18} className="text-white/70" />
                                     </div>
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setVideoFile(null);
-                                            setVideoId(null);
-                                            setFrameUrl(null);
-                                            setImgDims(null);
-                                            // Reset input
-                                            if (fileInputRef.current) fileInputRef.current.value = "";
-                                        }}
-                                        className="text-white/40 hover:text-white transition-colors p-2"
-                                    >
-                                        <X size={18} />
-                                    </button>
+                                    <div>
+                                        <p className="text-sm font-medium max-w-[200px] truncate">{videoFile?.name}</p>
+                                        <p className="text-xs text-white/40">{(videoFile?.size ? videoFile.size / 1024 / 1024 : 0).toFixed(2)} MB</p>
+                                    </div>
                                 </div>
-                            )}
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setVideoFile(null);
+                                        setVideoId(null);
+                                        setFrameUrl(null);
+                                        setImgDims(null);
+                                        // Reset input
+                                        if (fileInputRef.current) fileInputRef.current.value = "";
+                                    }}
+                                    className="text-white/40 hover:text-white transition-colors p-2"
+                                >
+                                    <X size={18} />
+                                </button>
+                            </div>
+                            )
                         </div>
 
                         {/* Bounding Box */}
