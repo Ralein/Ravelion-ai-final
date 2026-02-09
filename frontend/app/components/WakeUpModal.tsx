@@ -51,7 +51,7 @@ export default function WakeUpModal() {
                     <div className="space-y-2">
                         <h3 className="text-xl font-semibold text-white">Ravelion is Asleep</h3>
                         <p className="text-neutral-400">
-                            The backend is currently waking up from inactivity. This may take 5 minute.
+                            The backend is currently waking up from inactivity. This may take about 5 minutes.
                             Please wait until it wakes up.
                         </p>
                     </div>
@@ -67,7 +67,7 @@ export default function WakeUpModal() {
                             className="flex items-center justify-center gap-2 w-full py-3 px-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm font-medium transition-colors group"
                         >
                             <Mail className="h-4 w-4 text-neutral-400 group-hover:text-white transition-colors" />
-                            Send mail to Ralein
+                            Send mail to raleinnova@gmail.com
                         </a>
                     </div>
                 </div>
