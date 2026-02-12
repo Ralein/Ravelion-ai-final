@@ -9,14 +9,14 @@ import os
 import shutil
 from fastapi import APIRouter
 
-from config import UPLOAD_DIR, OUTPUT_DIR, FRAMES_DIR, TEMP_DIR
+from config import UPLOAD_DIR, OUTPUT_DIR, TEMP_DIR
 
 router = APIRouter(tags=["system"])
 
 
 @router.get("/")
 def read_root():
-    return {"message": "Ravelion AI Backend (AI Service)", "version": "2.0.0"}
+    return {"message": "Ravelion AI Backend (Image AI Service)", "version": "2.0.0"}
 
 
 @router.get("/ping")
@@ -29,7 +29,7 @@ def cleanup_system():
     """
     Clear all temporary directories and reset system state.
     """
-    dirs_to_clean = [UPLOAD_DIR, OUTPUT_DIR, FRAMES_DIR, TEMP_DIR]
+    dirs_to_clean = [UPLOAD_DIR, OUTPUT_DIR, TEMP_DIR]
     cleaned = []
 
     for dir_path in dirs_to_clean:
