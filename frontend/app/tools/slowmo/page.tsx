@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useRef } from "react";
-import axios from "axios";
+import { uploadVideo, processVideo, api } from "../../lib/api";
 import { Upload, X, Download, Loader2, ArrowLeft, Clock, Play } from "lucide-react";
 import Link from "next/link";
 import LoadingMessage from "../../components/LoadingMessage";
 import DragDropUpload from "../../components/DragDropUpload";
 
-const API_URL = "http://127.0.0.1:8000";
+
 
 export default function SlowMoPage() {
     const [videoFile, setVideoFile] = useState<File | null>(null);
@@ -27,8 +27,8 @@ export default function SlowMoPage() {
         formData.append("file", file);
 
         try {
-            const res = await axios.post(`${API_URL}/upload-video`, formData);
-            setVideoId(res.data.video_id);
+            const res = await uploadVideo(file);
+            setVideoId(res.video_id);
             setResultUrl(null);
         } catch (err) {
             console.error("Upload failed", err);
@@ -55,8 +55,8 @@ export default function SlowMoPage() {
         formData.append("speed", speed.toString());
 
         try {
-            const res = await axios.post(`${API_URL}/slowmo`, formData);
-            setResultUrl(res.data.video_url);
+            const res = await processVideo("/slowmo", videoId, { speed });
+            setResultUrl(res.video_url as string);
             setProcessingStatus("Complete!");
         } catch (err) {
             console.error("Processing failed", err);
@@ -130,6 +130,13 @@ export default function SlowMoPage() {
                                     </button>
                                 </div>
                             )}
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                className="hidden"
+                                accept="video/*"
+                                onChange={handleUpload}
+                            />
                         </div>
 
                         {/* Speed Control */}
@@ -189,7 +196,7 @@ export default function SlowMoPage() {
                                         onClick={async () => {
                                             if (!resultUrl) return;
                                             try {
-                                                const response = await axios.get(resultUrl, { responseType: 'blob' });
+                                                const response = await api.get(resultUrl, { responseType: 'blob' });
                                                 const url = window.URL.createObjectURL(new Blob([response.data]));
                                                 const link = document.createElement('a');
                                                 link.href = url;

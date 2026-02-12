@@ -17,6 +17,12 @@ COPY . .
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
+ARG NEXT_PUBLIC_AI_API_URL
+ENV NEXT_PUBLIC_AI_API_URL=$NEXT_PUBLIC_AI_API_URL
+
+ARG NEXT_PUBLIC_AI_IMAGE_API_URL
+ENV NEXT_PUBLIC_AI_IMAGE_API_URL=$NEXT_PUBLIC_AI_IMAGE_API_URL
+
 # Build the Next.js app
 # Note: For Vercel deployment, this Dockerfile isn't used (Vercel uses its own build system).
 # This is primarily for local testing via docker-compose.

@@ -1,14 +1,13 @@
 "use client";
 
 import { useState, useRef } from "react";
-import axios from "axios";
 import { Upload, X, Download, Loader2, ArrowLeft, Minimize2, Play, Check } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
 import LoadingMessage from "../../components/LoadingMessage";
 import DragDropUpload from "../../components/DragDropUpload";
 
-const API_URL = "http://127.0.0.1:8000";
+import { uploadVideo, processVideo, api } from "../../lib/api";
 
 const QUALITY_OPTIONS = [
     { value: "low", label: "Low", desc: "Max compression", reduction: "~70%" },
@@ -34,8 +33,8 @@ export default function CompressPage() {
         formData.append("file", file);
 
         try {
-            const res = await axios.post(`${API_URL}/upload-video`, formData);
-            setVideoId(res.data.video_id);
+            const res = await uploadVideo(file);
+            setVideoId(res.video_id);
             setResultUrl(null);
         } catch (err) {
             console.error("Upload failed", err);
@@ -62,8 +61,8 @@ export default function CompressPage() {
         formData.append("quality", quality);
 
         try {
-            const res = await axios.post(`${API_URL}/compress`, formData);
-            setResultUrl(res.data.video_url);
+            const res = await processVideo("/compress", videoId, { quality });
+            setResultUrl(res.video_url as string);
             setProcessingStatus("Complete!");
         } catch (err) {
             console.error("Processing failed", err);
@@ -197,7 +196,7 @@ export default function CompressPage() {
                                         onClick={async () => {
                                             if (!resultUrl) return;
                                             try {
-                                                const response = await axios.get(resultUrl, { responseType: 'blob' });
+                                                const response = await api.get(resultUrl, { responseType: 'blob' });
                                                 const url = window.URL.createObjectURL(new Blob([response.data]));
                                                 const link = document.createElement('a');
                                                 link.href = url;

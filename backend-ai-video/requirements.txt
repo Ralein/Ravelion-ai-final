@@ -1,0 +1,17 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+fastapi
+uvicorn
+python-multipart
+opencv-python
+numpy
+torch
+torchvision
+pillow
+requests
+wget
+tqdm
+mobile-sam @ git+https://github.com/ChaoningZhang/MobileSAM.git
+timm
+transformers
+scipy
+yolov7detect

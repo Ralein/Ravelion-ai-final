@@ -1,12 +1,14 @@
 {
     "name": "ravelion-ai",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "description": "Ravelion AI - Video Background Removal",
     "scripts": {
-        "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+        "dev": "concurrently \"npm run dev:backend-ai-video\" \"npm run dev:backend-ai-image\" \"npm run dev:backend-tools\" \"npm run dev:frontend\"",
         "dev:frontend": "cd frontend && npm run dev",
-        "dev:backend": "cd backend && source venv/bin/activate && python3 -m uvicorn main:app --reload --reload-exclude 'uploads/*' --reload-exclude 'outputs/*' --reload-exclude 'frames/*' --reload-exclude 'temp_work/*' --host 0.0.0.0 --port 8000",
-        "install:all": "npm install && cd frontend && npm install && cd ../backend && python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt"
+        "dev:backend-ai-video": "cd backend-ai-video && source venv/bin/activate && python3 -m uvicorn main:app --reload --reload-exclude 'uploads/*' --reload-exclude 'outputs/*' --reload-exclude 'frames/*' --reload-exclude 'temp_work/*' --host 0.0.0.0 --port 8000",
+        "dev:backend-ai-image": "cd backend-ai-image && source venv/bin/activate && python3 -m uvicorn main:app --reload --reload-exclude 'uploads/*' --reload-exclude 'outputs/*' --host 0.0.0.0 --port 8002",
+        "dev:backend-tools": "cd backend-tools && source venv/bin/activate && python3 -m uvicorn main:app --reload --reload-exclude 'uploads/*' --reload-exclude 'outputs/*' --reload-exclude 'frames/*' --reload-exclude 'temp_work/*' --host 0.0.0.0 --port 8001",
+        "install:all": "npm install && cd frontend && npm install && cd ../backend-ai-video && python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt && cd ../backend-ai-image && python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt && cd ../backend-tools && python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt"
     },
     "devDependencies": {
         "concurrently": "^8.2.2"

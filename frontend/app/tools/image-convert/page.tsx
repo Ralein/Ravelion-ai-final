@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, useRef } from "react";
-import axios from "axios";
+import { uploadImage, api } from "../../lib/api";
 import { Upload, X, Download, Loader2, ArrowLeft, FileType, Check, Image as ImageIcon } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
 import LoadingMessage from "../../components/LoadingMessage";
 import DragDropUpload from "../../components/DragDropUpload";
 
-const API_URL = "http://127.0.0.1:8000";
+
 
 const FORMATS = [
     { value: "jpg", label: "JPG", desc: "Best for photos" },
@@ -46,8 +46,8 @@ export default function ImageConvertPage() {
         formData.append("format", format);
 
         try {
-            const res = await axios.post(`${API_URL}/convert-image`, formData);
-            setResultUrl(res.data.image_url);
+            const res = await uploadImage(imageFile, "/convert-image", { format });
+            setResultUrl(res.image_url as string);
             setProcessingStatus("Complete!");
         } catch (err) {
             console.error("Processing failed", err);
@@ -114,6 +114,13 @@ export default function ImageConvertPage() {
                                     </button>
                                 </div>
                             )}
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                className="hidden"
+                                accept="image/*"
+                                onChange={handleUpload}
+                            />
                         </div>
 
                         {imageFile && (
@@ -174,7 +181,7 @@ export default function ImageConvertPage() {
                                         onClick={async () => {
                                             if (!resultUrl) return;
                                             try {
-                                                const response = await axios.get(resultUrl, { responseType: 'blob' });
+                                                const response = await api.get(resultUrl, { responseType: 'blob' });
                                                 const url = window.URL.createObjectURL(new Blob([response.data]));
                                                 const link = document.createElement('a');
                                                 link.href = url;

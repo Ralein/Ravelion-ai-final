@@ -8,7 +8,7 @@ import clsx from "clsx";
 import SuccessModal from "../../components/SuccessModal";
 import DragDropUpload from "../../components/DragDropUpload";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8001";
 
 export default function WatermarkPage() {
     const [mode, setMode] = useState<"image" | "video">("image");
@@ -225,7 +225,10 @@ export default function WatermarkPage() {
                                     icon={mode === "image" ? ImageIcon : VideoIcon}
                                 />
                             ) : (
-                                <div className="flex items-center justify-between rounded-xl bg-white/[0.03] border border-white/10 p-4">
+                                <div
+                                    className="flex items-center justify-between rounded-xl bg-white/[0.03] border border-white/10 p-4 cursor-pointer hover:bg-white/[0.05] transition-colors group"
+                                    onClick={() => fileInputRef.current?.click()}
+                                >
                                     <div className="flex items-center gap-3">
                                         <div className="h-10 w-10 rounded-lg bg-white/10 flex items-center justify-center">
                                             {mode === "image" ? <ImageIcon size={18} className="text-white/70" /> : <VideoIcon size={18} className="text-white/70" />}
@@ -236,11 +239,12 @@ export default function WatermarkPage() {
                                         </div>
                                     </div>
                                     <button
-                                        onClick={() => {
+                                        onClick={(e) => {
+                                            e.stopPropagation();
                                             setFile(null);
                                             setPreviewUrl(null);
                                             setVideoId(null);
-                                            fileInputRef.current!.value = "";
+                                            if (fileInputRef.current) fileInputRef.current.value = "";
                                         }}
                                         className="text-white/40 hover:text-white transition-colors p-2"
                                     >
@@ -248,6 +252,14 @@ export default function WatermarkPage() {
                                     </button>
                                 </div>
                             )}
+
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                className="hidden"
+                                accept={mode === "image" ? "image/*" : "video/*"}
+                                onChange={handleUpload}
+                            />
                         </div>
 
                         {/* Adjust Bbox */}

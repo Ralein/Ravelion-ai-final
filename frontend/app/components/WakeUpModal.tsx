@@ -4,7 +4,9 @@ import { useState, useEffect } from "react";
 import { Mail, Loader2, Moon } from "lucide-react";
 import axios from "axios";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8001";
+const AI_API_URL = process.env.NEXT_PUBLIC_AI_API_URL || "http://127.0.0.1:8000";
+const AI_IMAGE_API_URL = process.env.NEXT_PUBLIC_AI_IMAGE_API_URL || "http://127.0.0.1:8002";
 
 export default function WakeUpModal() {
     const [isAsleep, setIsAsleep] = useState(false);
@@ -13,8 +15,13 @@ export default function WakeUpModal() {
     useEffect(() => {
         const checkHealth = async () => {
             try {
-                console.log(`Checking backend health at: ${API_URL}/ping`);
-                await axios.get(`${API_URL}/ping`, { timeout: 30000 });
+                console.log(`Checking backend health...`);
+                // Ping all backends - all must be awake
+                await Promise.all([
+                    axios.get(`${API_URL}/ping`, { timeout: 30000 }),
+                    axios.get(`${AI_API_URL}/ping`, { timeout: 30000 }),
+                    axios.get(`${AI_IMAGE_API_URL}/ping`, { timeout: 30000 }),
+                ]);
                 setIsAsleep(false);
                 setIsRetrying(false);
             } catch (error) {

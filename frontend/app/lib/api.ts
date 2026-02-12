@@ -9,13 +9,30 @@
 
 import axios, { AxiosProgressEvent } from "axios";
 
-// API Base URL from environment or default
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+// API Base URLs from environment or defaults
+// Tools backend: lightweight ffmpeg/opencv operations (slowmo, fastmo, compress, convert, audio, watermark)
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8001";
 
-// Axios instance with default config
+// Video AI backend: MobileSAM video segmentation
+export const AI_API_URL = process.env.NEXT_PUBLIC_AI_API_URL || "http://127.0.0.1:8000";
+
+// Image AI backend: rembg image background removal
+export const AI_IMAGE_API_URL = process.env.NEXT_PUBLIC_AI_IMAGE_API_URL || "http://127.0.0.1:8002";
+
+// Axios instances with default config
 export const api = axios.create({
     baseURL: API_URL,
     timeout: 300000, // 5 minutes for video processing
+});
+
+export const aiApi = axios.create({
+    baseURL: AI_API_URL,
+    timeout: 600000, // 10 minutes for AI processing
+});
+
+export const aiImageApi = axios.create({
+    baseURL: AI_IMAGE_API_URL,
+    timeout: 300000, // 5 minutes for image AI
 });
 
 /**

@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, useRef } from "react";
-import axios from "axios";
+import { uploadVideo, processVideo, api } from "../../lib/api";
 import { Upload, X, Download, Loader2, ArrowLeft, FileType, Play, Check } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
 import LoadingMessage from "../../components/LoadingMessage";
 import DragDropUpload from "../../components/DragDropUpload";
 
-const API_URL = "http://127.0.0.1:8000";
+
 
 const FORMATS = [
     { value: "mp4", label: "MP4", desc: "Universal" },
@@ -35,8 +35,8 @@ export default function ConvertPage() {
         formData.append("file", file);
 
         try {
-            const res = await axios.post(`${API_URL}/upload-video`, formData);
-            setVideoId(res.data.video_id);
+            const res = await uploadVideo(file);
+            setVideoId(res.video_id);
             setResultUrl(null);
         } catch (err) {
             console.error("Upload failed", err);
@@ -63,8 +63,8 @@ export default function ConvertPage() {
         formData.append("format", format);
 
         try {
-            const res = await axios.post(`${API_URL}/convert`, formData);
-            setResultUrl(res.data.video_url);
+            const res = await processVideo("/convert", videoId, { format });
+            setResultUrl(res.video_url as string);
             setProcessingStatus("Complete!");
         } catch (err) {
             console.error("Processing failed", err);
@@ -137,6 +137,13 @@ export default function ConvertPage() {
                                     </button>
                                 </div>
                             )}
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                className="hidden"
+                                accept="video/*"
+                                onChange={handleUpload}
+                            />
                         </div>
 
                         {videoId && (
@@ -195,7 +202,7 @@ export default function ConvertPage() {
                                         onClick={async () => {
                                             if (!resultUrl) return;
                                             try {
-                                                const response = await axios.get(resultUrl, { responseType: 'blob' });
+                                                const response = await api.get(resultUrl, { responseType: 'blob' });
                                                 const url = window.URL.createObjectURL(new Blob([response.data]));
                                                 const link = document.createElement('a');
                                                 link.href = url;

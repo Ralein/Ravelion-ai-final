@@ -45,6 +45,27 @@ backend/uploads/
 backend/outputs/
 backend/temp_work/
 
+# Backend AI Video generated folders
+backend-ai-video/frames/
+backend-ai-video/uploads/
+backend-ai-video/outputs/
+backend-ai-video/temp_work/
+backend-ai-video/models/
+backend-ai-video/venv/
+
+# Backend AI Image generated folders
+backend-ai-image/uploads/
+backend-ai-image/outputs/
+backend-ai-image/temp_work/
+backend-ai-image/venv/
+
+# Backend Tools generated folders
+backend-tools/frames/
+backend-tools/uploads/
+backend-tools/outputs/
+backend-tools/temp_work/
+backend-tools/venv/
+
 # Logs
 *.log
 logs/

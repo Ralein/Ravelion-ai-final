@@ -1,28 +1,53 @@
 version: '3.8'
 
 services:
-  # Backend: FastAPI + Python + AI Models
-  # Deploys to: Render / Railway
-  backend:
-    build: 
-      context: ./backend
+  # Backend AI Video: MobileSAM video segmentation (~300-400MB)
+  backend-ai-video:
+    build:
+      context: ./backend-ai-video
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
     volumes:
-      # Mount source code for live reload in dev
-      - ./backend:/app
-      # Exclude heavier dirs from mounting if needed, or mount specific output dirs
+      - ./backend-ai-video:/app
       - /app/uploads
       - /app/outputs
       - /app/frames
       - /app/temp_work
     environment:
-      # Ensure python outputs are sent straight to terminal
       - PYTHONUNBUFFERED=1
 
-  # Frontend: Next.js + React
-  # Deploys to: Vercel (Git Push)
+  # Backend AI Image: rembg background removal (~150-200MB)
+  backend-ai-image:
+    build:
+      context: ./backend-ai-image
+      dockerfile: Dockerfile
+    ports:
+      - "8002:8000"
+    volumes:
+      - ./backend-ai-image:/app
+      - /app/uploads
+      - /app/outputs
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  # Backend Tools: Lightweight ffmpeg/opencv processing (~30-50MB)
+  backend-tools:
+    build:
+      context: ./backend-tools
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./backend-tools:/app
+      - /app/uploads
+      - /app/outputs
+      - /app/frames
+      - /app/temp_work
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  # Frontend: Next.js
   frontend:
     build:
       context: ./frontend
@@ -33,9 +58,10 @@ services:
       - ./frontend:/app
       - /app/node_modules
     environment:
-      # Point to backend service name in docker network
-      # Note: Browser runs on host, so "localhost" is usually correct for client-side calls
-      # but if doing SSR (server-side rendering) fetching from backend, might need "http://backend:8000"
-      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NEXT_PUBLIC_AI_API_URL=http://localhost:8000
+      - NEXT_PUBLIC_AI_IMAGE_API_URL=http://localhost:8002
+      - NEXT_PUBLIC_API_URL=http://localhost:8001
     depends_on:
-      - backend
+      - backend-ai-video
+      - backend-ai-image
+      - backend-tools

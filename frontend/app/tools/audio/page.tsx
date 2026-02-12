@@ -122,6 +122,13 @@ export default function AudioPage() {
                                     </button>
                                 </div>
                             )}
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                className="hidden"
+                                accept="video/*"
+                                onChange={handleUpload}
+                            />
                         </div>
 
                         {videoId && (
