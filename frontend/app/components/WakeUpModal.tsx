@@ -13,6 +13,14 @@ export default function WakeUpModal() {
     const [isRetrying, setIsRetrying] = useState(true);
 
     useEffect(() => {
+        // Skip health checks on localhost — wake-up modal is only for Render cold starts
+        const isLocal = typeof window !== "undefined" &&
+            (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+        if (isLocal) {
+            setIsRetrying(false);
+            return;
+        }
+
         const checkHealth = async () => {
             try {
                 console.log(`Checking backend health...`);
