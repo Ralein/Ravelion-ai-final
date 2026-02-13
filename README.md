@@ -35,79 +35,345 @@ Most media tools are either too complex (command-line FFmpeg) or too expensive (
 
 ---
 
-## 🛠️ Technology Stack
+## 📁 Project Structure
 
-- **Frontend**: [Next.js 15](https://nextjs.org/) (App Router), [React](https://reactjs.org/), [Tailwind CSS](https://tailwindcss.com/)
-- **Backend**: [FastAPI](https://fastapi.tiangolo.com/) (Python 3.10+), [Uvicorn](https://www.uvicorn.org/)
-- **AI/ML**: [PyTorch](https://pytorch.org/), [MobileSAM](https://github.com/ChaoningZhang/MobileSAM), [YOLOv7](https://github.com/WongKinYiu/yolov7), [BiRefNet](https://github.com/ZhengPeng7/BiRefNet)
-- **Media Engine**: [FFmpeg](https://ffmpeg.org/) (The industry standard for video/audio processing)
-- **Deployment**: [Vercel](https://vercel.com/) (Frontend), [Render](https://render.com/) (Dockerized Backend)
-
-## Prerequisites
-- Python 3.10+
-- Node.js 18+
-- FFmpeg (Must be installed and in system PATH)
-
-## Installation
-
-### 1. Backend Setup
-```bash
-cd backend
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
+```
+Ravelion-ai-final/
+├── frontend/                        # Next.js 16 Web UI
+│   ├── app/
+│   │   ├── components/              # Reusable UI components
+│   │   │   ├── WakeUpModal.tsx      # Backend health check + local fallback modal
+│   │   │   ├── LoadingMessage.tsx   # Dynamic loading messages
+│   │   │   ├── Navbar.tsx           # Navigation bar
+│   │   │   └── DragDropUpload.tsx   # Shared upload component
+│   │   ├── image/page.tsx           # Image background removal tool
+│   │   ├── editor/page.tsx          # Video editor (segmentation)
+│   │   ├── compress/page.tsx        # Video compression tool
+│   │   ├── convert/page.tsx         # Video format converter
+│   │   ├── slowmo/page.tsx          # Slow motion tool
+│   │   ├── fastmo/page.tsx          # Fast motion tool
+│   │   ├── audio/page.tsx           # Audio extraction tool
+│   │   ├── watermark/page.tsx       # Watermark tool
+│   │   ├── image-compress/page.tsx  # Image compression tool
+│   │   ├── admin/page.tsx           # Admin dashboard
+│   │   ├── login/page.tsx           # Admin login
+│   │   ├── layout.tsx               # Root layout
+│   │   ├── page.tsx                 # Landing page
+│   │   └── globals.css              # Global styles
+│   ├── public/                      # Static assets
+│   ├── .env.local                   # Environment variables (API URLs)
+│   ├── package.json
+│   ├── Dockerfile
+│   ├── next.config.ts
+│   └── tsconfig.json
+│
+├── backend-ai-video/                # AI Video Service (Port 8000)
+│   │                                # MobileSAM video segmentation
+│   ├── main.py                      # FastAPI app entry point
+│   ├── config.py                    # Service configuration
+│   ├── requirements.txt             # Python dependencies
+│   ├── Dockerfile
+│   ├── routers/
+│   │   ├── system.py                # Health check & cleanup endpoints
+│   │   └── video_ai.py              # /upload-video, /segment-video, /auto-remove
+│   └── core/
+│       ├── engine.py                # MobileSAM + YOLOv7 segmentation engine
+│       ├── utils.py                 # Video frame extraction utilities
+│       └── cleanup.py               # File cleanup logic
+│
+├── backend-ai-image/                # AI Image Service (Port 8002)
+│   │                                # rembg background removal
+│   ├── main.py                      # FastAPI app entry point
+│   ├── config.py                    # Service configuration
+│   ├── requirements.txt             # Python dependencies
+│   ├── download_models.py           # Pre-download rembg AI models
+│   ├── Dockerfile
+│   ├── routers/
+│   │   ├── system.py                # Health check & cleanup endpoints
+│   │   └── image_ai.py              # /remove-bg-pro
+│   ├── services/
+│   │   └── image_service.py         # rembg processing logic
+│   └── core/
+│       └── cleanup.py               # File cleanup logic
+│
+├── backend-tools/                   # Lightweight Tools Service (Port 8001)
+│   │                                # FFmpeg-based video/image/audio tools
+│   ├── main.py                      # FastAPI app entry point
+│   ├── config.py                    # Service configuration
+│   ├── requirements.txt             # Python dependencies
+│   ├── Dockerfile
+│   ├── routers/
+│   │   ├── system.py                # Health check & cleanup endpoints
+│   │   ├── video_tools.py           # /compress, /convert, /slowmo, /fastmo
+│   │   ├── image_tools.py           # /image-compress, /image-convert
+│   │   └── audio.py                 # /extract-audio
+│   ├── services/
+│   │   ├── video_service.py         # FFmpeg video processing
+│   │   └── image_service.py         # Image compress/convert logic
+│   └── core/
+│       └── cleanup.py               # File cleanup logic
+│
+├── docker-compose.yml               # Run all services with Docker
+├── start_backends.sh                # Quick-start script for local backends
+├── LICENSE
+└── README.md
 ```
 
-**Note for Apple Silicon (M1/M2/M3)**:  
-The system automatically detects MPS (Metal Performance Shaders) for accelerated inference.
+---
 
-### 2. Frontend Setup
+## 🛠️ Technology Stack
+
+- **Frontend**: [Next.js 16](https://nextjs.org/) (App Router), [React 19](https://reactjs.org/), [Tailwind CSS 4](https://tailwindcss.com/)
+- **Backend**: [FastAPI](https://fastapi.tiangolo.com/) (Python 3.10+), [Uvicorn](https://www.uvicorn.org/)
+- **AI/ML**: [PyTorch](https://pytorch.org/), [MobileSAM](https://github.com/ChaoningZhang/MobileSAM), [YOLOv7](https://github.com/WongKinYiu/yolov7), [rembg](https://github.com/danielgatis/rembg)
+- **Media Engine**: [FFmpeg](https://ffmpeg.org/) (The industry standard for video/audio processing)
+- **Deployment**: [Vercel](https://vercel.com/) (Frontend), [Render](https://render.com/) (Dockerized Backends)
+
+---
+
+## 📋 Prerequisites
+
+Before getting started, ensure you have the following installed:
+
+| Requirement     | Version  | Check Command       |
+| --------------- | -------- | ------------------- |
+| **Python**      | 3.10+    | `python3 --version` |
+| **Node.js**     | 18+      | `node --version`    |
+| **npm**         | 9+       | `npm --version`     |
+| **FFmpeg**      | Latest   | `ffmpeg -version`   |
+| **Git**         | Latest   | `git --version`     |
+
+### Installing FFmpeg
+
+```bash
+# macOS (Homebrew)
+brew install ffmpeg
+
+# Ubuntu/Debian
+sudo apt update && sudo apt install ffmpeg
+
+# Windows (Chocolatey)
+choco install ffmpeg
+```
+
+---
+
+## 🚀 Quick Start (Local Development)
+
+### Option 1: One-Command Setup (Recommended)
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/Ralein/Ravelion-ai-final.git
+cd Ravelion-ai-final
+
+# 2. Start all backend services (installs deps automatically)
+bash start_backends.sh
+
+# 3. Setup and start the frontend
+cd frontend
+npm install
+npm run dev
+```
+
+Open **http://localhost:3000** — you're all set! 🎉
+
+### Option 2: Manual Setup (Step-by-Step)
+
+#### 1. Clone the Repository
+
+```bash
+git clone https://github.com/Ralein/Ravelion-ai-final.git
+cd Ravelion-ai-final
+```
+
+#### 2. Backend Setup
+
+Each backend is an independent microservice. You can start only the ones you need:
+
+**Tools Service** (Video compress/convert, image tools, audio — lightweight):
+```bash
+cd backend-tools
+pip install -r requirements.txt
+python3 main.py
+# Runs on http://localhost:8001
+```
+
+**Image AI Service** (AI background removal):
+```bash
+cd backend-ai-image
+pip install -r requirements.txt
+python3 main.py
+# Runs on http://localhost:8002
+# Note: First request may take ~30s to download the AI model (~170MB)
+```
+
+**Video AI Service** (Video segmentation — heavy, requires PyTorch):
+```bash
+cd backend-ai-video
+pip install -r requirements.txt
+python3 main.py
+# Runs on http://localhost:8000
+# Note: Requires ~1GB+ RAM for MobileSAM model
+```
+
+> **💡 Tip**: If you only need basic tools (compress, convert, slow-mo), you can skip the AI services entirely. The Tools Service is lightweight and runs independently.
+
+#### 3. Frontend Setup
+
 ```bash
 cd frontend
 npm install
 ```
 
-## Running the App
+Create or update `frontend/.env.local` with local backend URLs:
 
-1. **Start Backend**:
-   ```bash
-   cd backend
-   source venv/bin/activate
-   uvicorn main:app --reload
+```env
+NEXT_PUBLIC_AI_API_URL=http://127.0.0.1:8000
+NEXT_PUBLIC_API_URL=http://127.0.0.1:8001
+NEXT_PUBLIC_AI_IMAGE_API_URL=http://127.0.0.1:8002
+```
+
+Start the dev server:
+
+```bash
+npm run dev
+```
+
+Frontend runs on **http://localhost:3000**.
+
+### Option 3: Docker Compose (All-in-One)
+
+```bash
+git clone https://github.com/Ralein/Ravelion-ai-final.git
+cd Ravelion-ai-final
+docker-compose up --build
+```
+
+This starts all services:
+| Service          | Container Port | Host Port | URL                        |
+| ---------------- | -------------- | --------- | -------------------------- |
+| Video AI Backend | 8000           | 8000      | http://localhost:8000       |
+| Tools Backend    | 8000           | 8001      | http://localhost:8001       |
+| Image AI Backend | 8000           | 8002      | http://localhost:8002       |
+| Frontend         | 3000           | 3000      | http://localhost:3000       |
+
+---
+
+## 🌐 Service Architecture
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                     Frontend (Next.js 16)                     │
+│                    http://localhost:3000                       │
+└──────────┬──────────────────┬──────────────────┬─────────────┘
+           │                  │                  │
+           ▼                  ▼                  ▼
+┌──────────────────┐ ┌───────────────────┐ ┌───────────────────┐
+│ backend-ai-video │ │  backend-tools    │ │ backend-ai-image  │
+│   Port 8000      │ │   Port 8001       │ │   Port 8002       │
+│                  │ │                   │ │                   │
+│ • Video segment  │ │ • Compress video  │ │ • Remove BG (AI)  │
+│ • Auto-remove BG │ │ • Convert format  │ │                   │
+│ • MobileSAM      │ │ • Slow/Fast mo    │ │ • rembg + u2net   │
+│ • YOLOv7         │ │ • Image compress  │ │ • onnxruntime     │
+│                  │ │ • Extract audio   │ │                   │
+│ ~300-400MB RAM   │ │ ~30-50MB RAM      │ │ ~150-200MB RAM    │
+└──────────────────┘ └───────────────────┘ └───────────────────┘
+```
+
+### Environment Variables
+
+| Variable                       | Points To         | Default (Local)            |
+| ------------------------------ | ----------------- | -------------------------- |
+| `NEXT_PUBLIC_AI_API_URL`       | Video AI Service  | `http://127.0.0.1:8000`   |
+| `NEXT_PUBLIC_API_URL`          | Tools Service     | `http://127.0.0.1:8001`   |
+| `NEXT_PUBLIC_AI_IMAGE_API_URL` | Image AI Service  | `http://127.0.0.1:8002`   |
+
+---
+
+## 🔧 Troubleshooting
+
+### Backend won't start
+
+```bash
+# Check if ports are in use
+lsof -i :8000
+lsof -i :8001
+lsof -i :8002
+
+# Kill processes on those ports
+lsof -ti:8000 | xargs kill -9
+lsof -ti:8001 | xargs kill -9
+lsof -ti:8002 | xargs kill -9
+```
+
+### Frontend shows "Backend is waking up" modal
+
+This only appears in production (Render free tier). The backends go to sleep after 15 minutes of inactivity and take 2–5 minutes to wake up. If they don't start within 5 minutes, the modal will show local setup instructions.
+
+**To avoid this entirely**, run locally using the instructions above.
+
+### FFmpeg not found
+
+Make sure FFmpeg is installed and in your system PATH:
+```bash
+ffmpeg -version
+# If not found, install it (see Prerequisites section)
+```
+
+### Apple Silicon (M1/M2/M3/M4)
+
+The system automatically detects MPS (Metal Performance Shaders) for accelerated AI inference. No extra configuration needed.
+
+### Checking backend logs
+
+```bash
+# If started with start_backends.sh
+tail -f Video-AI.log Tools-Service.log Image-AI.log
+
+# Stop all backends
+pkill -f "python3 main.py"
+```
+
+---
+
+## ☁️ Cloud Deployment
+
+### Frontend → Vercel
+
+1. Push `frontend/` to GitHub.
+2. Import the repo on [Vercel](https://vercel.com).
+3. Set the **Root Directory** to `frontend`.
+4. Add environment variables pointing to your Render backend URLs:
    ```
-   Backend runs on `http://localhost:8000`.
-
-2. **Start Frontend**:
-   ```bash
-   cd frontend
-   npm run dev
+   NEXT_PUBLIC_AI_API_URL=https://your-video-ai.onrender.com
+   NEXT_PUBLIC_API_URL=https://your-tools.onrender.com
+   NEXT_PUBLIC_AI_IMAGE_API_URL=https://your-image-ai.onrender.com
    ```
-   Frontend runs on `http://localhost:3000`.
 
-## Deployment Architecture
+### Backends → Render
 
-Ravelion AI is designed with a modern hybrid architecture:
+Each backend is deployed as a separate **Web Service** on Render:
 
-**User → Vercel (Next.js UI)**
-             ↓ API calls
-**Render (Docker + Python + AI Models)**
+1. Create 3 Web Services on [Render](https://render.com), each pointing to the same repo.
+2. For each service, set the **Root Directory** to the respective backend folder (`backend-ai-video`, `backend-tools`, `backend-ai-image`).
+3. Select **Docker** as the environment.
+4. Render will use the `Dockerfile` in each folder automatically.
 
-### 1. Cloud Deployment
-- **Frontend**: Deploy the `frontend` folder to [Vercel](https://vercel.com).  
-  (Set `NEXT_PUBLIC_API_URL` environment variable to your Render backend URL).
-- **Backend**: Deploy the `backend` folder to [Render](https://render.com) using the included `Dockerfile`.  
-  (Select "Web Service" > "Docker" on Render).
+> ⚠️ **Free Tier Note**: Render's free tier has 512MB RAM. The `backend-ai-video` service may run out of memory. Consider upgrading to a paid plan for the video AI service, or use it locally only.
 
-### 2. Local Usage
-Simply follow the "Running the App" instructions above to run everything on your own machine.
+---
 
-## Usage
-1. Open `http://localhost:3000`.
+## 📖 Usage
+
+1. Open **http://localhost:3000**.
 2. Select a tool from the dashboard (e.g., Video BG Removal, Image Compress).
 3. Upload your file.
 4. Adjust settings (Speed, Quality, Format, etc.).
-5. Process the file (Updates with "Ravelion is working on it...").
-6. Preview and Download the result directly.
+5. Process the file.
+6. Preview and download the result directly.
 
 ---
+
 © 2026 **Ralein Nova**. All Rights Reserved. This software is proprietary and confidential. Unauthorized copying is prohibited. See [LICENSE](LICENSE) for details.
