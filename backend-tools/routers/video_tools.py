@@ -45,10 +45,10 @@ async def upload_video(request: Request, file: UploadFile = File(...)):
     video_filename = f"{video_id}.{original_ext}"
     video_path = os.path.join(UPLOAD_DIR, video_filename)
 
-    # Save uploaded video
+    # Save uploaded video in chunks (streaming)
     with open(video_path, "wb") as f:
-        content = await file.read()
-        f.write(content)
+        while chunk := await file.read(4 * 1024 * 1024): # 4MB chunks
+            f.write(chunk)
 
     # Extract first frame
     frame_filename = f"{video_id}.jpg"

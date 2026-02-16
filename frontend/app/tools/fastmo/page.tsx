@@ -13,6 +13,7 @@ export default function FastMoPage() {
     const [videoFile, setVideoFile] = useState<File | null>(null);
     const [videoId, setVideoId] = useState<string | null>(null);
     const [isUploading, setIsUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
     const [isProcessing, setIsProcessing] = useState(false);
     const [resultUrl, setResultUrl] = useState<string | null>(null);
     const [speed, setSpeed] = useState(2);
@@ -22,12 +23,12 @@ export default function FastMoPage() {
     const uploadFile = async (file: File) => {
         setVideoFile(file);
         setIsUploading(true);
-
-        const formData = new FormData();
-        formData.append("file", file);
+        setUploadProgress(0);
 
         try {
-            const res = await uploadVideo(file);
+            const res = await uploadVideo(file, (progress) => {
+                setUploadProgress(progress);
+            });
             setVideoId(res.video_id);
             setResultUrl(null);
         } catch (err) {
@@ -110,9 +111,21 @@ export default function FastMoPage() {
                                                 <Play size={18} className="text-white/70" />
                                             )}
                                         </div>
-                                        <div>
-                                            <p className="text-sm font-medium max-w-[200px] truncate">{videoFile.name}</p>
-                                            <p className="text-xs text-white/40">{(videoFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex justify-between items-center mb-1">
+                                                <p className="text-sm font-medium truncate">{videoFile.name}</p>
+                                                {isUploading && <span className="text-[10px] font-mono text-white/40">{uploadProgress}%</span>}
+                                            </div>
+                                            {isUploading ? (
+                                                <div className="w-full bg-white/5 rounded-full h-1 overflow-hidden">
+                                                    <div
+                                                        className="bg-white h-full transition-all duration-300"
+                                                        style={{ width: `${uploadProgress}%` }}
+                                                    />
+                                                </div>
+                                            ) : (
+                                                <p className="text-xs text-white/40">{(videoFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                                            )}
                                         </div>
                                     </div>
                                     <button

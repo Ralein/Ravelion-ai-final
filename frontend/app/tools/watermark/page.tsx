@@ -16,6 +16,8 @@ export default function WatermarkPage() {
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [resultUrl, setResultUrl] = useState<string | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
 
     // For Video
     const [videoId, setVideoId] = useState<string | null>(null);
@@ -52,15 +54,26 @@ export default function WatermarkPage() {
             const url = URL.createObjectURL(f);
             setPreviewUrl(url);
         } else {
+            setIsUploading(true);
+            setUploadProgress(0);
             const formData = new FormData();
             formData.append("file", f);
             try {
-                const res = await axios.post(`${API_URL}/upload-video`, formData);
+                const res = await axios.post(`${API_URL}/upload-video`, formData, {
+                    onUploadProgress: (progressEvent) => {
+                        if (progressEvent.total) {
+                            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                            setUploadProgress(percentCompleted);
+                        }
+                    }
+                });
                 setVideoId(res.data.video_id);
-                setPreviewUrl(res.data.frame_url);
+                setPreviewUrl(res.data.first_frame_url || res.data.frame_url);
             } catch (err) {
                 console.error(err);
                 alert("Upload failed");
+            } finally {
+                setIsUploading(false);
             }
         }
     };
@@ -233,9 +246,21 @@ export default function WatermarkPage() {
                                         <div className="h-10 w-10 rounded-lg bg-white/10 flex items-center justify-center">
                                             {mode === "image" ? <ImageIcon size={18} className="text-white/70" /> : <VideoIcon size={18} className="text-white/70" />}
                                         </div>
-                                        <div>
-                                            <p className="text-sm font-medium max-w-[200px] truncate">{file.name}</p>
-                                            <p className="text-xs text-white/40">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex justify-between items-center mb-1">
+                                                <p className="text-sm font-medium truncate">{file.name}</p>
+                                                {isUploading && mode === "video" && <span className="text-[10px] font-mono text-white/40">{uploadProgress}%</span>}
+                                            </div>
+                                            {isUploading && mode === "video" ? (
+                                                <div className="w-full bg-white/5 rounded-full h-1 overflow-hidden">
+                                                    <div
+                                                        className="bg-white h-full transition-all duration-300"
+                                                        style={{ width: `${uploadProgress}%` }}
+                                                    />
+                                                </div>
+                                            ) : (
+                                                <p className="text-xs text-white/40">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                                            )}
                                         </div>
                                     </div>
                                     <button

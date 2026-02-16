@@ -41,10 +41,11 @@ def get_sam_predictor(mobile_sam_weights):
     SamPredictor, sam_model_registry = _get_sam_module()
     
     device = "cpu"
-    if torch.cuda.is_available():
-        device = "cuda"
-    elif torch.backends.mps.is_available():
-        device = "mps"
+    # Force CPU to avoid MPS compatibility issues on Mac that lead to NoneType embeddings
+    # if torch.cuda.is_available():
+    #     device = "cuda"
+    # elif torch.backends.mps.is_available():
+    #     device = "mps"
     
     print(f"Using device: {device}")
 
@@ -105,8 +106,8 @@ def segment_video_logic(
         output_video_path = output_video_path.rsplit('.', 1)[0] + '.webm'
 
     # 1. Video to Images
-    # Ensure video is rotated correctly (cv2 ignores metadata, so we physically rotate if needed)
-    processing_video_path = autorotate_video(video_path)
+    # FFmpeg handles rotation automatically, so we don't need manual rotation anymore
+    processing_video_path = video_path
     print(f"Processing video: {processing_video_path}")
     
     fps, count = video_to_images(processing_video_path, frames_dir, frame_start, frame_end)

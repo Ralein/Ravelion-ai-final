@@ -25,6 +25,7 @@ export default function EditorPage() {
     const [videoId, setVideoId] = useState<string | null>(null);
     const [frameUrl, setFrameUrl] = useState<string | null>(null);
     const [isUploading, setIsUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
     const [isSegmenting, setIsSegmenting] = useState(false);
     const [resultUrl, setResultUrl] = useState<string | null>(null);
     const [mode, setMode] = useState<"auto" | "segment">("segment");
@@ -61,12 +62,20 @@ export default function EditorPage() {
     const uploadFile = async (file: File) => {
         setVideoFile(file);
         setIsUploading(true);
+        setUploadProgress(0);
 
         const formData = new FormData();
         formData.append("file", file);
 
         try {
-            const res = await axios.post(`${API_URL}/upload-video`, formData);
+            const res = await axios.post(`${API_URL}/upload-video`, formData, {
+                onUploadProgress: (progressEvent) => {
+                    if (progressEvent.total) {
+                        const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                        setUploadProgress(percentCompleted);
+                    }
+                }
+            });
             console.log("Upload response:", res.data);
             setVideoId(res.data.video_id);
             setFrameUrl(res.data.first_frame_url);
@@ -310,9 +319,20 @@ export default function EditorPage() {
                             )}
 
                             {isUploading && (
-                                <div className="flex items-center justify-center gap-3 rounded-xl bg-white/[0.03] border border-white/10 p-6">
-                                    <Loader2 size={20} className="animate-spin text-white/70" />
-                                    <p className="text-sm text-white/70">Uploading video...</p>
+                                <div className="flex flex-col gap-4 rounded-xl bg-white/[0.03] border border-white/10 p-6 animate-pulse">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <Loader2 size={20} className="animate-spin text-white/70" />
+                                            <p className="text-sm text-white/70">Uploading video...</p>
+                                        </div>
+                                        <span className="text-xs font-mono text-white/40">{uploadProgress}%</span>
+                                    </div>
+                                    <div className="w-full bg-white/5 rounded-full h-1.5 overflow-hidden">
+                                        <div
+                                            className="bg-white h-full transition-all duration-300 ease-out"
+                                            style={{ width: `${uploadProgress}%` }}
+                                        />
+                                    </div>
                                 </div>
                             )}
 

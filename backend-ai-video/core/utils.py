@@ -52,8 +52,10 @@ def extract_first_frame(video_path, output_image_path):
     """
     # Use ffmpeg to extract first frame - it handles rotation automatically
     try:
+        # Fast seek with -ss before -i
         subprocess.run([
             'ffmpeg', '-y',
+            '-ss', '0',
             '-i', video_path,
             '-vframes', '1',
             '-q:v', '2',
@@ -75,35 +77,65 @@ def extract_first_frame(video_path, output_image_path):
 
 def video_to_images(video_path, output_dir, image_start=0, image_end=0):
     """
-    Convert video to a sequence of images.
+    Convert video to a sequence of images using FFmpeg.
+    This is much faster than cv2 and handles rotation automatically.
     """
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
+    # Get video info first (FPS and total frames)
+    # Actually, we can just let ffmpeg do it and then check the count
     vid = cv2.VideoCapture(video_path)
+    fps = vid.get(cv2.CAP_PROP_FPS)
     total_frames = int(vid.get(cv2.CAP_PROP_FRAME_COUNT))
-    fps = vid.get(cv2.CAP_PROP_FPS) # Return FPS for later use
-    success, image = vid.read()
-    count = 0
-    ok_count = 0
-    
+    vid.release()
+
     if image_end == 0:
         image_end = total_frames
 
+    # FFmpeg command for frame extraction
+    # -start_number 0 ensures consistency with zfill logic if needed
+    # but we'll use a standard pattern and then let the caller handle it if needed
+    # Actually, segment_video_logic expects frame_0000.png, frame_0001.png etc.
+    
+    # Calculate duration/range for ffmpeg if needed
+    # -ss start -to end
+    # But for now, we'll extract all frames in the range
+    
+    # Pattern matching the existing logic: frame_0000.png
     zfill_max = len(str(total_frames))
+    pattern = f"frame_%0{zfill_max}d.png"
     
-    while success:
-        if count >= image_start and count <= image_end:
-            # image is BGR, cv2.imwrite saves BGR. Correct.
-            cv2.imwrite(
-                f"{output_dir}/frame_{str(ok_count).zfill(zfill_max)}.png", image
-            )
-            ok_count += 1
+    cmd = [
+        'ffmpeg', '-y',
+        '-i', video_path,
+        '-vf', f'select=between(n\\,{image_start}\\,{image_end})',
+        '-vsync', '0',
+        os.path.join(output_dir, pattern)
+    ]
+    
+    try:
+        subprocess.run(cmd, check=True, capture_output=True)
+        # Count output files
+        ok_count = len([f for f in os.listdir(output_dir) if f.endswith(".png")])
+        return fps, ok_count
+    except Exception as e:
+        print(f"FFmpeg video_to_images failed: {e}")
+        # Fallback to the slow cv2 method if needed
+        vid = cv2.VideoCapture(video_path)
         success, image = vid.read()
-        count += 1
-    
-    vid.release()
-    return fps, ok_count
+        count = 0
+        ok_count = 0
+        while success:
+            if count >= image_start and count <= image_end:
+                cv2.imwrite(
+                    f"{output_dir}/frame_{str(ok_count).zfill(zfill_max)}.png", image
+                )
+                ok_count += 1
+            success, image = vid.read()
+            count += 1
+        vid.release()
+        return fps, ok_count
 
 def images_to_video(images_dir, output_video_path, fps=30):
     """

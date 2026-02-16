@@ -17,6 +17,7 @@ def extract_first_frame(video_path, output_image_path):
     try:
         subprocess.run([
             'ffmpeg', '-y',
+            '-ss', '0',
             '-i', video_path,
             '-vframes', '1',
             '-q:v', '2',
