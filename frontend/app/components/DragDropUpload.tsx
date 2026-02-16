@@ -24,18 +24,37 @@ export default function DragDropUpload({
     const [isDragging, setIsDragging] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    const handleDragEnter = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(true);
+    };
+
     const handleDragOver = (e: React.DragEvent) => {
         e.preventDefault();
-        setIsDragging(true);
+        e.stopPropagation();
+        if (!isDragging) setIsDragging(true);
     };
 
     const handleDragLeave = (e: React.DragEvent) => {
         e.preventDefault();
-        setIsDragging(false);
+        e.stopPropagation();
+        // Only set to false if we're actually leaving the container,
+        // not just moving between child elements.
+        const rect = e.currentTarget.getBoundingClientRect();
+        if (
+            e.clientX < rect.left ||
+            e.clientX >= rect.right ||
+            e.clientY < rect.top ||
+            e.clientY >= rect.bottom
+        ) {
+            setIsDragging(false);
+        }
     };
 
     const handleDrop = (e: React.DragEvent) => {
         e.preventDefault();
+        e.stopPropagation();
         setIsDragging(false);
 
         if (e.dataTransfer.files && e.dataTransfer.files[0]) {
@@ -50,10 +69,6 @@ export default function DragDropUpload({
     };
 
     const validateAndSelect = (file: File) => {
-        // Basic type check based on accept
-        // accept string usually looks like "video/*,image/png" etc.
-        // logic can be complex but browser input handles click, we just need to be careful with drop
-
         // Simple size check
         if (maxSizeMB && file.size > maxSizeMB * 1024 * 1024) {
             alert(`File too large. Max size: ${maxSizeMB}MB`);
@@ -61,7 +76,7 @@ export default function DragDropUpload({
         }
 
         onFileSelect(file);
-        // Reset input value so same file can be selected again if needed (though usually component unmounts or state changes)
+        // Reset input value so same file can be selected again
         if (fileInputRef.current) {
             fileInputRef.current.value = "";
         }
@@ -69,6 +84,7 @@ export default function DragDropUpload({
 
     return (
         <div
+            onDragEnter={handleDragEnter}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
@@ -88,15 +104,18 @@ export default function DragDropUpload({
                 onChange={handleChange}
             />
 
-            <div className={clsx("p-4 rounded-full bg-white/5 mb-4 group-hover:scale-110 transition-transform", isDragging && "scale-110 bg-white/10")}>
+            <div className={clsx(
+                "p-4 rounded-full bg-white/5 mb-4 group-hover:scale-110 transition-transform pointer-events-none",
+                isDragging && "scale-110 bg-white/10"
+            )}>
                 <Icon className={clsx("w-8 h-8", isDragging ? "text-white" : "text-white/50")} />
             </div>
 
-            <p className="text-sm font-medium text-white/70 mb-1">{label}</p>
-            <p className="text-xs text-white/40">{subLabel}</p>
+            <p className="text-sm font-medium text-white/70 mb-1 pointer-events-none">{label}</p>
+            <p className="text-xs text-white/40 pointer-events-none">{subLabel}</p>
 
             {/* Accept hint */}
-            <p className="absolute bottom-4 text-[10px] text-white/20 uppercase tracking-wider">
+            <p className="absolute bottom-4 text-[10px] text-white/20 uppercase tracking-wider pointer-events-none">
                 {accept.replace(/\*/g, '').split(',').join(' • ')}
             </p>
         </div>
